@@ -3,39 +3,57 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ---------- Design tokens ---------- */
+/* ---------- Design tokens (docs/product.md §5 — brutalism có kỷ luật) ----------
+   Contrast đã đo theo công thức WCAG. Hai điểm lệch có chủ đích so với spec:
+   - Light mode: chữ/link màu nhấn dùng olive #556300 (6.3:1). Lime trên nền sáng chỉ 1.07:1 — không đọc được.
+     Lime vẫn dùng làm NỀN (nút, highlight), chữ trên nền lime luôn đen.
+   - Viền #2A2A2A của spec chỉ đạt 1.38:1 (không phải ≥3:1) → chỉ dùng cho viền trang trí;
+     ô nhập liệu dùng --border-strong (≥3:1). */
 :root {
   color-scheme: light;
-  --bg: #f8fafc;
+  --bg: #fafaf7;
   --surface: #ffffff;
-  --surface-2: #f1f5f9;
-  --fg: #0f172a;
-  --fg-soft: #334155;
-  --muted: #475569;
-  --subtle: #64748b;
-  --border: #e2e8f0;
-  --accent: #15803d; /* chữ/link màu nhấn — 5:1 trên nền trắng */
-  --accent-strong: #15803d; /* nền nút chính */
-  --on-accent: #ffffff;
-  --accent-soft: #dcfce7;
-  --glow: rgb(34 197 94 / 0.12);
+  --surface-2: #f0f0ea;
+  --fg: #0a0a0a;
+  --fg-soft: #2b2b2b;
+  --muted: #525252; /* 7.5:1 */
+  --subtle: #6b6b6b; /* 5.1:1 */
+  --border: #d6d6d0; /* trang trí */
+  --border-strong: #8a8a8a; /* ô nhập — 3.3:1 */
+  --accent: #556300; /* chữ/link/viền màu nhấn — 6.3:1 */
+  --accent-strong: #e8ff3b; /* nền nút & highlight */
+  --on-accent: #0a0a0a;
+  --accent-soft: #f1fbb8;
+  --accent-2: #c2183a; /* tag, hover — 5.8:1 */
+  --code-bg: #f4f4ef;
+  --shadow-color: #0a0a0a;
+
+  /* Motion tokens (§5.6) */
+  --dur-fast: 120ms;
+  --dur-base: 240ms;
+  --dur-slow: 480ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 :root.dark {
   color-scheme: dark;
-  --bg: #0b1120;
-  --surface: #0f172a;
-  --surface-2: #162033;
-  --fg: #f1f5f9;
-  --fg-soft: #cbd5e1;
-  --muted: #94a3b8;
-  --subtle: #7c8ba1;
-  --border: #1e293b;
-  --accent: #4ade80;
-  --accent-strong: #22c55e;
-  --on-accent: #052e16;
-  --accent-soft: rgb(34 197 94 / 0.12);
-  --glow: rgb(34 197 94 / 0.16);
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-2: #1c1c1c;
+  --fg: #f5f5f0; /* 18:1 */
+  --fg-soft: #d4d4ce;
+  --muted: #a1a1a1; /* 7.7:1 */
+  --subtle: #8c8c8c; /* 5.9:1 */
+  --border: #2e2e2e;
+  --border-strong: #767676;
+  --accent: #e8ff3b; /* 17.7:1 */
+  --accent-strong: #e8ff3b;
+  --on-accent: #0a0a0a;
+  --accent-soft: rgb(232 255 59 / 0.1);
+  --accent-2: #ff4d6d; /* 6.2:1 */
+  --code-bg: #0e0e12;
+  --shadow-color: #f5f5f0;
 }
 
 @theme inline {
@@ -47,34 +65,109 @@
   --color-muted: var(--muted);
   --color-subtle: var(--subtle);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-on-accent: var(--on-accent);
   --color-accent-soft: var(--accent-soft);
-  --font-sans: var(--font-be-vietnam), ui-sans-serif, system-ui, sans-serif;
+  --color-accent-2: var(--accent-2);
+  /* Body serif editorial, heading Fraunces, mono cho meta/nav/tag (§5.2) */
+  --font-sans: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-display: var(--font-fraunces), var(--font-newsreader), ui-serif, Georgia, serif;
   --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
 }
 
+@theme {
+  /* Chữ mono nhỏ nhất 12.8px (§9) */
+  --text-xs: 0.8rem;
+  --text-xs--line-height: 1.5;
+  --text-hero: clamp(3rem, 10vw, 8rem);
+  --text-hero--line-height: 0.92;
+  /* Container 1200px (§5.4) */
+  --container-page: 75rem;
+  /* Radius 0 — chỉ giữ dạng pill (rounded-full) */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+}
+
 /* ---------- Base ---------- */
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* Header dính cao 4rem — chừa chỗ để focus/anchor không bị che (WCAG 2.4.11) */
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--accent-strong);
+    color: var(--on-accent);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ≥16px trên ô nhập để iOS không tự zoom */
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
 }
 
-body {
-  background: var(--bg);
-  color: var(--fg);
+/* ---------- Hard shadow (offset đặc, blur 0) — hover co lại như "được nhấn" ---------- */
+@utility hard-shadow-static {
+  box-shadow: 6px 6px 0 0 var(--shadow-color);
 }
 
-::selection {
-  background: var(--accent-strong);
-  color: var(--on-accent);
+@utility hard-shadow {
+  box-shadow: 6px 6px 0 0 var(--shadow-color);
+  transition:
+    box-shadow var(--dur-fast) var(--ease-out),
+    translate var(--dur-fast) var(--ease-out);
+  &:hover {
+    box-shadow: 3px 3px 0 0 var(--shadow-color);
+    translate: 3px 3px;
+  }
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent-strong);
-  outline-offset: 3px;
-  border-radius: 6px;
+@utility hard-shadow-sm {
+  box-shadow: 4px 4px 0 0 var(--shadow-color);
+  transition:
+    box-shadow var(--dur-fast) var(--ease-out),
+    translate var(--dur-fast) var(--ease-out);
+  &:hover {
+    box-shadow: 2px 2px 0 0 var(--shadow-color);
+    translate: 2px 2px;
+  }
+  &:active {
+    box-shadow: 0 0 0 0 var(--shadow-color);
+    translate: 4px 4px;
+  }
 }
 
 /* ---------- Decoration ---------- */
@@ -82,27 +175,89 @@ body {
   background-image:
     linear-gradient(var(--border) 1px, transparent 1px),
     linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, #000 20%, transparent 100%);
 }
 
-.bg-glow {
-  background: radial-gradient(ellipse 50% 50% at 50% 0%, var(--glow), transparent 70%);
+/* Noise/grain rất nhẹ — không chặn click, không làm giảm contrast chữ (§5.5) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-@keyframes rise {
+.palette::backdrop {
+  background: rgb(10 10 10 / 0.6);
+}
+
+/* ---------- Motion (§8) — mọi chuyển động chỉ chạy khi người dùng không yêu cầu giảm chuyển động ---------- */
+.reading-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  height: 4px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-title {
+    animation: hero-in var(--dur-slow) var(--ease-out) both;
+  }
+
+  .caret {
+    animation: blink 1.1s steps(1) infinite;
+  }
+
+  /* CSS scroll-driven: không cần JS, không chặn main thread */
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 30%;
+    }
+
+    .reading-progress {
+      animation: progress linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+}
+
+@keyframes hero-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    translate: 0 0.12em;
+    font-variation-settings: "wght" 300;
   }
   to {
     opacity: 1;
-    transform: none;
+    translate: 0 0;
+    font-variation-settings: "wght" 600;
   }
 }
 
-.animate-rise {
-  animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+@keyframes reveal {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes progress {
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @keyframes blink {
@@ -111,22 +266,71 @@ body {
   }
 }
 
-.caret {
-  animation: blink 1.1s steps(1) infinite;
+/* View Transitions khi chuyển trang (app/template.tsx): crossfade ngắn, header đứng yên */
+::view-transition {
+  pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+
+::view-transition-old(site-header) {
+  display: none;
+}
+
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+::view-transition-old(.page) {
+  animation: var(--dur-fast) var(--ease-out) both vt-fade reverse;
+}
+
+::view-transition-new(.page) {
+  animation:
+    var(--dur-base) var(--ease-out) var(--dur-fast) both vt-fade,
+    var(--dur-base) var(--ease-out) var(--dur-fast) both vt-rise;
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-/* ---------- Bài viết (prose) ---------- */
+@keyframes vt-rise {
+  from {
+    translate: 0 8px;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after,
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Bài viết (prose) — 19px, ~65 ký tự/dòng (§5.2) ---------- */
 .post-prose {
   --tw-prose-body: var(--fg-soft);
   --tw-prose-headings: var(--fg);
@@ -137,12 +341,26 @@ body {
   --tw-prose-bullets: var(--subtle);
   --tw-prose-hr: var(--border);
   --tw-prose-quotes: var(--fg);
-  --tw-prose-quote-borders: var(--accent-strong);
+  --tw-prose-quote-borders: var(--fg);
   --tw-prose-captions: var(--subtle);
   --tw-prose-code: var(--fg);
-  --tw-prose-th-borders: var(--border);
+  --tw-prose-th-borders: var(--fg);
   --tw-prose-td-borders: var(--border);
-  line-height: 1.8;
+  font-size: 1.1875rem;
+  /* Chữ Việt nhiều dấu chồng → cần line-height cao hơn mức 1.5 của spec một chút */
+  line-height: 1.7;
+  max-width: 65ch;
+}
+
+.post-prose :where(h2, h3, h4) {
+  font-family: var(--font-display);
+  scroll-margin-top: 5rem;
+  letter-spacing: -0.01em;
+}
+
+.post-prose :where(h2) {
+  border-top: 2px solid var(--fg);
+  padding-top: 0.75em;
 }
 
 .post-prose a {
@@ -150,19 +368,16 @@ body {
   text-decoration-thickness: 1px;
 }
 
-.post-prose h2,
-.post-prose h3 {
-  scroll-margin-top: 5rem;
-  letter-spacing: -0.01em;
+.post-prose a:hover {
+  color: var(--accent-2);
 }
 
 .post-prose :not(pre) > code {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
-  padding: 0.1em 0.4em;
+  padding: 0.1em 0.35em;
   font-weight: 500;
-  font-size: 0.875em;
+  font-size: 0.85em;
 }
 
 .post-prose :not(pre) > code::before,
@@ -171,9 +386,9 @@ body {
 }
 
 .post-prose pre {
-  background: var(--surface-2);
+  background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-radius: 0;
   padding: 1rem 0;
   font-size: 0.875rem;
   line-height: 1.7;
@@ -189,6 +404,11 @@ body {
   padding: 0 1.25rem;
 }
 
+.post-prose pre [data-highlighted-line] {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .post-prose [data-rehype-pretty-code-title] {
   font-family: var(--font-mono);
   font-size: 0.8rem;
@@ -196,13 +416,17 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-bottom: none;
-  border-radius: 0.75rem 0.75rem 0 0;
   padding: 0.5rem 1.25rem;
 }
 
-.post-prose [data-rehype-pretty-code-title] + pre {
+.post-prose [data-rehype-pretty-code-title] + .code-block pre {
   margin-top: 0;
-  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.post-prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5em 0;
 }
 
 /* Shiki dual theme: đổi màu code theo giao diện sáng/tối */

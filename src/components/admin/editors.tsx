@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown";
+import { useCurrentMonth } from "@/components/project-timeline";
 import {
   Button,
   CheckboxField,
@@ -13,9 +14,11 @@ import {
   buttonClass,
   inputClass,
 } from "@/components/admin/ui";
+import type { EditablePost } from "@/lib/posts";
 import {
   CREDENTIAL_KINDS,
   CREDENTIAL_STATUSES,
+  PROJECT_DOMAINS,
   PROJECT_STATUSES,
   ROADMAP_STATUSES,
   ROADMAP_STATUS_LABELS,
@@ -25,13 +28,15 @@ import {
   stageProgress,
   type Credential,
   type Project,
+  type ProjectMetric,
   type RoadmapStage,
   type RoadmapStatus,
   type RoadmapTopic,
 } from "@/lib/site";
-import { newId, parseMarkdownNote, toTags, today, useCurrentMonth, type Note } from "@/lib/store";
+import { slugify, toTags, today, uniqueSlug } from "@/lib/utils";
 
 const text = (fd: FormData, name: string) => String(fd.get(name) ?? "").trim();
+const optional = (fd: FormData, name: string) => text(fd, name) || undefined;
 
 function stageOptions(stages: RoadmapStage[]) {
   return [
@@ -48,6 +53,14 @@ function validateProjectDates(fd: FormData): string | null {
   if (end !== null && start === null) return "Có thời gian kết thúc thì cần nhập thời gian bắt đầu.";
   if (start !== null && end !== null && end < start) return "Thời gian kết thúc phải sau thời gian bắt đầu.";
   return null;
+}
+
+/** Slug nhập tay (đã chuẩn hoá) → slug cũ khi sửa → tạo từ tiêu đề, không trùng với mục khác. */
+function resolveSlug(fd: FormData, previous: { slug: string } | undefined, taken: string[]): string {
+  const typed = slugify(text(fd, "slug"));
+  if (typed) return typed;
+  if (previous) return previous.slug;
+  return uniqueSlug(slugify(text(fd, "title")), taken);
 }
 
 function FeaturedMark() {
@@ -138,11 +151,7 @@ function CollectionEditor<T>({
       </div>
 
       {editing !== null && (
-        <form
-          key={String(editing)}
-          onSubmit={handleSubmit}
-          className="space-y-5 rounded-xl border border-accent-strong/50 bg-surface p-5 sm:p-6"
-        >
+        <form key={String(editing)} onSubmit={handleSubmit} className="space-y-5 border-2 border-fg bg-surface p-5 sm:p-6">
           <h3 className="font-semibold text-fg">
             {editing === "new" ? `Thêm ${itemLabel}` : `Sửa: ${current ? getTitle(current) : ""}`}
           </h3>
@@ -162,11 +171,11 @@ function CollectionEditor<T>({
       )}
 
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
+        <p className="border border-dashed border-border p-8 text-center text-sm text-muted">
           Chưa có {itemLabel} nào. Bấm “Thêm {itemLabel}” để bắt đầu.
         </p>
       ) : (
-        <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
+        <ul className="divide-y divide-border border border-border bg-surface">
           {items.map((item, i) => (
             <li key={`${i}-${getTitle(item)}`} className="flex flex-wrap items-center gap-3 p-4">
               <div className="min-w-0 flex-1">{renderSummary(item)}</div>
@@ -243,13 +252,13 @@ function TopicsField({ defaultValue }: { defaultValue: RoadmapTopic[] }) {
       <ul className="space-y-2">
         {topics.map((topic, i) => (
           <li key={i} className="flex items-center gap-2">
-            <label className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg border border-border bg-bg">
+            <label className="grid size-11 shrink-0 cursor-pointer place-items-center border border-border-strong bg-bg">
               <input
                 type="checkbox"
                 checked={topic.done}
                 onChange={(e) => patch(i, { done: e.target.checked })}
                 aria-label={`Đã xong chủ đề ${i + 1}`}
-                className="size-4 cursor-pointer accent-accent-strong"
+                className="size-4 cursor-pointer accent-accent"
               />
             </label>
             <input
@@ -307,6 +316,7 @@ export function RoadmapEditor({
             {stageProgress(s).percent}%)
             {currentTopic(s) && ` · đang học: ${currentTopic(s)}`}
           </p>
+          <p className="mt-0.5 font-mono text-xs text-subtle">/roadmap/{s.id}</p>
         </>
       )}
       renderFields={(s) => (
@@ -330,10 +340,11 @@ export function RoadmapEditor({
         </div>
       )}
       fromForm={(fd, previous) => ({
-        id: previous?.id ?? newId(),
+        // id giữ nguyên khi sửa để link /roadmap/<id> và các mục đã gắn không bị gãy.
+        id: previous?.id ?? uniqueSlug(slugify(text(fd, "title")), items.map((s) => s.id)),
         title: text(fd, "title"),
         status: text(fd, "status") as RoadmapStatus,
-        description: text(fd, "description") || undefined,
+        description: optional(fd, "description"),
         topics: JSON.parse(text(fd, "topics") || "[]") as RoadmapTopic[],
       })}
     />
@@ -379,7 +390,8 @@ export function CredentialsEditor({
             name="date"
             defaultValue={c?.date}
             placeholder="09/2026"
-            pattern="\d{2}/\d{4}"
+            pattern={MONTH_PATTERN}
+            title="Dạng MM/YYYY, ví dụ 09/2026"
             hint="Dạng MM/YYYY"
           />
           <SelectField label="Loại" name="kind" options={CREDENTIAL_KINDS} defaultValue={c?.kind} />
@@ -405,29 +417,109 @@ export function CredentialsEditor({
             label="Nổi bật"
             name="featured"
             defaultChecked={c?.featured}
-            hint="Ưu tiên hiện trên trang chủ (trang chủ chỉ hiện tối đa 4 mục)"
+            hint="Ưu tiên hiện ở trang Giới thiệu"
             wrapperClassName="sm:col-span-2"
           />
         </div>
       )}
       fromForm={(fd) => ({
-        stageId: text(fd, "stageId") || undefined,
-        featured: fd.get("featured") === "on",
         title: text(fd, "title"),
         issuer: text(fd, "issuer"),
         kind: text(fd, "kind") as Credential["kind"],
         status: text(fd, "status") as Credential["status"],
-        date: text(fd, "date"),
-        url: text(fd, "url") || undefined,
-        note: text(fd, "note") || undefined,
+        date: optional(fd, "date"),
+        url: optional(fd, "url"),
+        note: optional(fd, "note"),
+        stageId: optional(fd, "stageId"),
+        featured: fd.get("featured") === "on",
       })}
     />
   );
 }
 
-// ---------- Dự án ----------
+// ---------- Nội dung MDX (dùng chung cho dự án và bài viết) ----------
 
-export function ProjectsEditor({ items, onChange }: { items: Project[]; onChange: (items: Project[]) => void }) {
+function MdxBodyField({ name, label, defaultValue, rows = 16 }: { name: string; label: string; defaultValue: string; rows?: number }) {
+  const [content, setContent] = useState(defaultValue);
+  const [preview, setPreview] = useState(false);
+
+  return (
+    <div className="space-y-1.5 sm:col-span-2">
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor={`${name}-field`} className="text-sm font-medium text-fg">
+          {label}
+        </label>
+        <div className="flex border border-border p-0.5 text-sm" role="group" aria-label="Chế độ soạn">
+          {[
+            { value: false, label: "Viết" },
+            { value: true, label: "Xem trước" },
+          ].map((mode) => (
+            <button
+              key={mode.label}
+              type="button"
+              aria-pressed={preview === mode.value}
+              onClick={() => setPreview(mode.value)}
+              className={`cursor-pointer px-3 py-1.5 transition-colors ${
+                preview === mode.value ? "bg-surface-2 font-medium text-fg" : "text-muted hover:text-fg"
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Luôn giữ textarea trong form để FormData có nội dung, chỉ ẩn khi xem trước */}
+      <textarea
+        id={`${name}-field`}
+        name={name}
+        rows={rows}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        hidden={preview}
+        placeholder={"## Vấn đề\n\n…\n\n```python title=\"main.py\"\nprint('hello')\n```"}
+        className={`${inputClass} font-mono text-sm leading-relaxed`}
+      />
+      {preview && (
+        <div className="min-h-64 border border-border bg-bg p-5">
+          {content.trim() ? (
+            <MarkdownContent source={content} />
+          ) : (
+            <p className="text-sm text-subtle">Chưa có nội dung để xem trước.</p>
+          )}
+        </div>
+      )}
+      <p className="text-xs text-subtle">
+        Markdown/MDX: ## tiêu đề, **đậm**, bảng, ```code```, &lt;Callout type=&quot;tip&quot;&gt;…&lt;/Callout&gt;. Xem trước chỉ
+        hiển thị Markdown cơ bản — component MDX và tô màu code chỉ thấy trên trang thật.
+      </p>
+    </div>
+  );
+}
+
+// ---------- Dự án (content/work/<slug>.mdx) ----------
+
+// Mỗi dòng: "Nhãn | Giá trị | Thay đổi (không bắt buộc)", ví dụ "Hit rate | 0.82 | +12%".
+function metricsToText(metrics: ProjectMetric[]): string {
+  return metrics.map((m) => [m.label, m.value, m.delta].filter(Boolean).join(" | ")).join("\n");
+}
+
+function textToMetrics(value: string): ProjectMetric[] {
+  return value
+    .split("\n")
+    .map((line) => line.split("|").map((part) => part.trim()))
+    .filter(([label, value]) => label && value)
+    .map(([label, value, delta]) => ({ label, value, delta: delta || undefined }));
+}
+
+export function ProjectsEditor({
+  items,
+  stages,
+  onChange,
+}: {
+  items: Project[];
+  stages: RoadmapStage[];
+  onChange: (items: Project[]) => void;
+}) {
   const now = useCurrentMonth();
 
   return (
@@ -444,27 +536,41 @@ export function ProjectsEditor({ items, onChange }: { items: Project[]; onChange
           </p>
           <p className="mt-0.5 text-sm text-muted">
             {[
+              p.domain,
               p.status,
               (() => {
                 const timeline = projectTimeline(p, now);
                 return timeline && [timeline.range, timeline.duration].filter(Boolean).join(" · ");
               })(),
-              p.stack.join(", "),
+              p.nda && "NDA",
             ]
               .filter(Boolean)
               .join(" · ")}
           </p>
-          {!p.startDate && (
-            <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
-              Chưa nhập thời gian — bấm Sửa để thêm Bắt đầu / Kết thúc (trang web sẽ hiện thời gian dự án)
-            </p>
-          )}
+          <p className="mt-0.5 font-mono text-xs text-subtle">
+            {p.status === "Ý tưởng" ? "Ẩn khỏi /work (chỉ hiện ở /now)" : `/work/${p.slug}`}
+          </p>
         </>
       )}
       renderFields={(p) => (
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="Tên dự án" name="title" required defaultValue={p?.title} />
-          <SelectField label="Trạng thái" name="status" options={PROJECT_STATUSES} defaultValue={p?.status} />
+          <TextField
+            label="Slug (URL)"
+            name="slug"
+            defaultValue={p?.slug}
+            placeholder="tu-tao-tu-ten-du-an"
+            hint="Để trống = tạo từ tên. Đổi slug sẽ đổi URL /work/<slug>."
+          />
+          <TextAreaField label="Tagline (1 câu)" name="tagline" required rows={2} defaultValue={p?.tagline} wrapperClassName="sm:col-span-2" />
+          <SelectField label="Lĩnh vực" name="domain" options={PROJECT_DOMAINS} defaultValue={p?.domain} />
+          <SelectField
+            label="Trạng thái"
+            name="status"
+            options={PROJECT_STATUSES}
+            defaultValue={p?.status}
+            hint="“Ý tưởng” không hiện ở /work — chỉ ở /now"
+          />
           <TextField
             label="Bắt đầu"
             name="startDate"
@@ -483,7 +589,6 @@ export function ProjectsEditor({ items, onChange }: { items: Project[]; onChange
             title="Dạng MM/YYYY, ví dụ 09/2026"
             hint="Để trống nếu dự án vẫn đang làm (hiện là “nay”)"
           />
-          <TextAreaField label="Mô tả" name="description" required rows={3} defaultValue={p?.description} wrapperClassName="sm:col-span-2" />
           <TextField
             label="Công nghệ"
             name="stack"
@@ -492,101 +597,104 @@ export function ProjectsEditor({ items, onChange }: { items: Project[]; onChange
             hint="Cách nhau bằng dấu phẩy"
             wrapperClassName="sm:col-span-2"
           />
+          <TextAreaField
+            label="Số liệu (metric)"
+            name="metrics"
+            rows={3}
+            defaultValue={p ? metricsToText(p.metrics) : ""}
+            placeholder={"Hit rate | 0.82\np95 latency | 420ms | −35%"}
+            hint="Mỗi dòng: Nhãn | Giá trị | Thay đổi. Chỉ ghi số liệu thật, đo được."
+            wrapperClassName="sm:col-span-2"
+          />
           <TextField label="Link source code" name="repo" type="url" defaultValue={p?.repo} placeholder="https://github.com/…" />
           <TextField label="Link demo" name="demo" type="url" defaultValue={p?.demo} placeholder="https://…" />
+          <TextField label="Link paper / writeup" name="paper" type="url" defaultValue={p?.paper} placeholder="https://…" />
+          <SelectField
+            label="Thuộc giai đoạn lộ trình"
+            name="stage"
+            options={stageOptions(stages)}
+            defaultValue={p?.stage ?? ""}
+          />
           <CheckboxField
             label="Nổi bật"
             name="featured"
             defaultChecked={p?.featured}
-            hint="Ưu tiên hiện trên trang chủ (trang chủ chỉ hiện tối đa 3 dự án)"
-            wrapperClassName="sm:col-span-2"
+            hint="Ưu tiên hiện trên trang chủ (tối đa 3 dự án)"
+          />
+          <CheckboxField
+            label="Confidential / NDA"
+            name="nda"
+            defaultChecked={p?.nda}
+            hint="Ẩn link repo, hiện badge NDA — chỉ mô tả vấn đề và cách tiếp cận ở mức trừu tượng"
+          />
+          <MdxBodyField
+            name="body"
+            label="Case study (MDX): Vấn đề → Dữ liệu → Cách tiếp cận → Kiến trúc → Đánh giá → Kết quả → Bài học"
+            defaultValue={p?.body ?? ""}
           />
         </div>
       )}
       validate={validateProjectDates}
-      fromForm={(fd) => ({
-        featured: fd.get("featured") === "on",
-        startDate: text(fd, "startDate") || undefined,
-        endDate: text(fd, "endDate") || undefined,
+      fromForm={(fd, previous) => ({
+        slug: resolveSlug(fd, previous, items.map((p) => p.slug)),
         title: text(fd, "title"),
-        description: text(fd, "description"),
+        tagline: text(fd, "tagline"),
+        domain: text(fd, "domain") as Project["domain"],
         status: text(fd, "status") as Project["status"],
         stack: toTags(text(fd, "stack")),
-        repo: text(fd, "repo") || undefined,
-        demo: text(fd, "demo") || undefined,
+        startDate: optional(fd, "startDate"),
+        endDate: optional(fd, "endDate"),
+        repo: optional(fd, "repo"),
+        demo: optional(fd, "demo"),
+        paper: optional(fd, "paper"),
+        nda: fd.get("nda") === "on",
+        featured: fd.get("featured") === "on",
+        stage: optional(fd, "stage"),
+        metrics: textToMetrics(text(fd, "metrics")),
+        body: text(fd, "body"),
       })}
     />
   );
 }
 
-// ---------- Ghi chú ----------
+// ---------- Bài viết (content/blog/<slug>.mdx) ----------
 
-function NoteContentField({ defaultValue }: { defaultValue: string }) {
-  const [content, setContent] = useState(defaultValue);
-  const [preview, setPreview] = useState(false);
+/** Đọc file .md/.mdx (có thể có frontmatter title/description/date/tags) thành bài viết. */
+function parseMarkdownFile(text: string, fileName: string, taken: string[]): EditablePost {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);
+  const meta: Record<string, string> = {};
+  let body = text;
+  if (match) {
+    body = match[2];
+    for (const line of match[1].split(/\r?\n/)) {
+      const kv = /^(\w+):\s*(.*)$/.exec(line);
+      if (kv) meta[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, "");
+    }
+  }
+  const heading = /^#\s+(.+)$/m.exec(body)?.[1]?.trim();
+  const title = meta.title || heading || fileName.replace(/\.(md|mdx|markdown)$/i, "");
 
-  return (
-    <div className="space-y-1.5 sm:col-span-2">
-      <div className="flex items-center justify-between gap-3">
-        <label htmlFor="note-content" className="text-sm font-medium text-fg">
-          Nội dung (Markdown)<span className="text-accent"> *</span>
-        </label>
-        <div className="flex rounded-lg border border-border p-0.5 text-sm" role="group" aria-label="Chế độ soạn">
-          {[
-            { value: false, label: "Viết" },
-            { value: true, label: "Xem trước" },
-          ].map((mode) => (
-            <button
-              key={mode.label}
-              type="button"
-              aria-pressed={preview === mode.value}
-              onClick={() => setPreview(mode.value)}
-              className={`cursor-pointer rounded-md px-3 py-1.5 transition-colors ${
-                preview === mode.value ? "bg-surface-2 font-medium text-fg" : "text-muted hover:text-fg"
-              }`}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* Luôn giữ textarea trong form để FormData có nội dung, chỉ ẩn khi xem trước */}
-      <textarea
-        id="note-content"
-        name="content"
-        required
-        rows={14}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        hidden={preview}
-        placeholder={"## Hôm nay mình học được\n\n- Ý 1\n- Ý 2\n\n```python\nprint('hello')\n```"}
-        className={`${inputClass} font-mono text-sm leading-relaxed`}
-      />
-      {preview && (
-        <div className="min-h-64 rounded-lg border border-border bg-bg p-5">
-          {content.trim() ? (
-            <MarkdownContent source={content} />
-          ) : (
-            <p className="text-sm text-subtle">Chưa có nội dung để xem trước.</p>
-          )}
-        </div>
-      )}
-      <p className="text-xs text-subtle">
-        Hỗ trợ Markdown: # tiêu đề, **đậm**, danh sách, bảng, ```code```, [link](https://…).
-      </p>
-    </div>
-  );
+  return {
+    slug: uniqueSlug(slugify(title), taken),
+    title,
+    description: meta.description ?? "",
+    date: /^\d{4}-\d{2}-\d{2}/.exec(meta.date ?? "")?.[0] ?? today(),
+    tags: toTags((meta.tags ?? "").replace(/^\[|\]$/g, "").split(",").map((tag) => tag.trim().replace(/^["']|["']$/g, ""))),
+    draft: true,
+    math: false,
+    content: body.trim(),
+  };
 }
 
-export function NotesEditor({
+export function PostsEditor({
   items,
   stages,
   onChange,
   onMessage,
 }: {
-  items: Note[];
+  items: EditablePost[];
   stages: RoadmapStage[];
-  onChange: (items: Note[]) => void;
+  onChange: (items: EditablePost[]) => void;
   onMessage: (text: string, type?: "ok" | "error") => void;
 }) {
   async function importMarkdown(event: ChangeEvent<HTMLInputElement>) {
@@ -594,9 +702,15 @@ export function NotesEditor({
     event.target.value = "";
     if (files.length === 0) return;
     try {
-      const imported = await Promise.all(files.map(async (file) => parseMarkdownNote(await file.text(), file.name)));
+      const taken = items.map((p) => p.slug);
+      const imported: EditablePost[] = [];
+      for (const file of files) {
+        const post = parseMarkdownFile(await file.text(), file.name, taken);
+        taken.push(post.slug);
+        imported.push(post);
+      }
       onChange([...imported, ...items]);
-      onMessage(`Đã nhập ${imported.length} ghi chú từ file Markdown.`);
+      onMessage(`Đã nhập ${imported.length} bài (đang để chế độ nháp).`);
     } catch {
       onMessage("Không đọc được file. Hãy chọn file .md dạng văn bản.", "error");
     }
@@ -606,7 +720,7 @@ export function NotesEditor({
     <CollectionEditor
       items={items}
       onChange={onChange}
-      itemLabel="ghi chú"
+      itemLabel="bài viết"
       getTitle={(n) => n.title}
       extraActions={
         <label className={buttonClass("secondary")}>
@@ -616,56 +730,60 @@ export function NotesEditor({
       }
       renderSummary={(n) => (
         <>
-          <Link
-            href={`/note?id=${encodeURIComponent(n.id)}`}
-            className="font-medium text-fg underline-offset-4 hover:text-accent hover:underline"
-          >
+          <Link href={`/blog/${n.slug}`} className="font-medium text-fg underline-offset-4 hover:text-accent hover:underline">
             {n.title}
           </Link>
+          {n.draft && <span className="ml-2 font-mono text-xs text-accent-2">[nháp]</span>}
           <p className="mt-0.5 font-mono text-xs text-subtle">
             {n.date}
             {n.tags.length > 0 && ` · ${n.tags.map((t) => `#${t}`).join(" ")}`}
+            {n.series && ` · series: ${n.series}${n.seriesPart ? ` (${n.seriesPart})` : ""}`}
           </p>
         </>
       )}
       renderFields={(n) => (
         <div className="grid gap-4 sm:grid-cols-2">
-          <TextField label="Tiêu đề" name="title" required defaultValue={n?.title} wrapperClassName="sm:col-span-2" />
+          <TextField label="Tiêu đề" name="title" required maxLength={110} defaultValue={n?.title} hint="Tối đa 110 ký tự" />
+          <TextField
+            label="Slug (URL)"
+            name="slug"
+            defaultValue={n?.slug}
+            placeholder="tu-tao-tu-tieu-de"
+            hint="Để trống = tạo từ tiêu đề. Đổi slug sẽ đổi URL /blog/<slug>."
+          />
           <TextAreaField
             label="Mô tả ngắn"
             name="description"
             rows={2}
+            maxLength={200}
             defaultValue={n?.description}
-            hint="Hiện ở danh sách bài viết"
+            hint="Hiện ở danh sách bài viết, RSS và khi chia sẻ (tối đa 200 ký tự)"
             wrapperClassName="sm:col-span-2"
           />
-          <TextField label="Ngày" name="date" type="date" required defaultValue={n?.date ?? today()} />
-          <TextField
-            label="Tags"
-            name="tags"
-            defaultValue={n?.tags.join(", ")}
-            placeholder="rag, llm"
-            hint="Cách nhau bằng dấu phẩy"
-          />
-          <SelectField
-            label="Thuộc giai đoạn lộ trình"
-            name="stageId"
-            options={stageOptions(stages)}
-            defaultValue={n?.stageId ?? ""}
-            hint="Ghi chú sẽ hiện trong trang chi tiết của giai đoạn này"
-            wrapperClassName="sm:col-span-2"
-          />
-          <NoteContentField defaultValue={n?.content ?? ""} />
+          <TextField label="Ngày đăng" name="date" type="date" required defaultValue={n?.date ?? today()} />
+          <TextField label="Ngày cập nhật" name="updated" type="date" defaultValue={n?.updated} hint="Để trống nếu chưa sửa lại" />
+          <TextField label="Tags" name="tags" defaultValue={n?.tags.join(", ")} placeholder="rag, llm" hint="Cách nhau bằng dấu phẩy" />
+          <SelectField label="Thuộc giai đoạn lộ trình" name="stage" options={stageOptions(stages)} defaultValue={n?.stage ?? ""} />
+          <TextField label="Series" name="series" defaultValue={n?.series} placeholder="RAG từ con số 0" hint="Để trống nếu là bài lẻ" />
+          <TextField label="Phần số" name="seriesPart" type="number" min={1} defaultValue={n?.seriesPart} />
+          <CheckboxField label="Bản nháp" name="draft" defaultChecked={n?.draft} hint="Chỉ hiện khi chạy local, không lên site" />
+          <CheckboxField label="Có công thức toán" name="math" defaultChecked={n?.math} hint="Bật KaTeX cho cú pháp $…$ và $$…$$" />
+          <MdxBodyField name="content" label="Nội dung (MDX)" defaultValue={n?.content ?? ""} />
         </div>
       )}
       fromForm={(fd, previous) => ({
-        id: previous?.id ?? newId(),
+        slug: resolveSlug(fd, previous, items.map((p) => p.slug)),
         title: text(fd, "title"),
         description: text(fd, "description"),
         date: text(fd, "date") || today(),
+        updated: optional(fd, "updated"),
         tags: toTags(text(fd, "tags")),
+        stage: optional(fd, "stage"),
+        series: optional(fd, "series"),
+        seriesPart: text(fd, "seriesPart") ? Number(text(fd, "seriesPart")) : undefined,
+        draft: fd.get("draft") === "on",
+        math: fd.get("math") === "on",
         content: text(fd, "content"),
-        stageId: text(fd, "stageId") || undefined,
       })}
     />
   );

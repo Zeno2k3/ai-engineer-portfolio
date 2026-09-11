@@ -1,0 +1,146 @@
+[
+  {
+    "id": "nen-tang",
+    "title": "Nền tảng",
+    "status": "done",
+    "description": "Python, xử lý dữ liệu và kiến thức ML cơ bản để hiểu các mô hình hoạt động thế nào.",
+    "topics": [
+      {
+        "name": "Python",
+        "done": true
+      },
+      {
+        "name": "NumPy / Pandas",
+        "done": true
+      },
+      {
+        "name": "Đại số tuyến tính cơ bản",
+        "done": true
+      },
+      {
+        "name": "Machine Learning cơ bản",
+        "done": true
+      }
+    ]
+  },
+  {
+    "id": "llm-prompting",
+    "title": "LLM & Prompt Engineering",
+    "status": "done",
+    "description": "Hiểu cách LLM xử lý văn bản và cách viết prompt cho kết quả ổn định.",
+    "topics": [
+      {
+        "name": "Tokenization",
+        "done": true
+      },
+      {
+        "name": "Context window",
+        "done": true
+      },
+      {
+        "name": "Few-shot",
+        "done": true
+      },
+      {
+        "name": "Structured output",
+        "done": true
+      }
+    ]
+  },
+  {
+    "id": "rag",
+    "title": "RAG & Vector Database",
+    "status": "doing",
+    "description": "Cho LLM đọc tài liệu riêng: chia nhỏ, nhúng vector, tìm kiếm và trả lời kèm nguồn.",
+    "topics": [
+      {
+        "name": "Embeddings",
+        "done": true
+      },
+      {
+        "name": "Chunking",
+        "done": true
+      },
+      {
+        "name": "Vector search",
+        "done": false
+      },
+      {
+        "name": "Reranking",
+        "done": false
+      },
+      {
+        "name": "Hybrid search",
+        "done": false
+      }
+    ]
+  },
+  {
+    "id": "agents",
+    "title": "Agents & Tool Use",
+    "status": "doing",
+    "description": "Để LLM gọi công cụ, tự lập kế hoạch và làm việc nhiều bước.",
+    "topics": [
+      {
+        "name": "Function calling",
+        "done": true
+      },
+      {
+        "name": "MCP",
+        "done": false
+      },
+      {
+        "name": "Agent loop",
+        "done": false
+      },
+      {
+        "name": "Memory",
+        "done": false
+      }
+    ]
+  },
+  {
+    "id": "evals-llmops",
+    "title": "Evals & LLMOps",
+    "status": "next",
+    "description": "Đo chất lượng, theo dõi và vận hành ứng dụng LLM trên production.",
+    "topics": [
+      {
+        "name": "Đánh giá chất lượng",
+        "done": false
+      },
+      {
+        "name": "Observability",
+        "done": false
+      },
+      {
+        "name": "Chi phí & độ trễ",
+        "done": false
+      },
+      {
+        "name": "Deploy",
+        "done": false
+      }
+    ]
+  },
+  {
+    "id": "fine-tuning",
+    "title": "Fine-tuning",
+    "status": "next",
+    "description": "Tinh chỉnh model cho tác vụ riêng và biết khi nào nên dùng thay cho RAG.",
+    "topics": [
+      {
+        "name": "LoRA",
+        "done": false
+      },
+      {
+        "name": "Chuẩn bị dataset",
+        "done": false
+      },
+      {
+        "name": "So sánh với RAG",
+        "done": false
+      }
+    ]
+  }
+]

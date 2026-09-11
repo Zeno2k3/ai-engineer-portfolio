@@ -1,116 +1,202 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Mail } from "lucide-react";
-import {
-  CredentialsSection,
-  FeedCount,
-  LatestPosts,
-  LearningNow,
-  ProjectsSection,
-  RoadmapSection,
-} from "@/components/content-sections";
+import { ArrowRight } from "lucide-react";
+import { ProjectCard, StageCard, ViewAll, stageHref } from "@/components/content-sections";
+import { JsonLd } from "@/components/json-ld";
+import { PostCard } from "@/components/post-card";
+import { SectionHeading } from "@/components/section-heading";
+import { getProjects, getRoadmap } from "@/lib/content";
+import { absoluteUrl, personLd } from "@/lib/jsonld";
 import { getAllPosts } from "@/lib/posts";
-import { site } from "@/lib/site";
+import { currentTopic, site, stageProgress, type RoadmapStatus } from "@/lib/site";
+import { buttonPrimary, buttonSecondary, containerClass } from "@/lib/ui";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+    types: { "application/rss+xml": [{ url: "/rss.xml", title: `${site.name} — RSS` }] },
+  },
+};
+
+const STATUS_PRIORITY: Record<RoadmapStatus, number> = { doing: 0, next: 1, done: 2 };
+
+/** Mục "nổi bật" lên trước, sau đó theo thứ tự sẵn có, lấy tối đa `limit`. */
+function pickFeatured<T extends { featured: boolean }>(items: T[], limit: number): T[] {
+  return [...items.filter((item) => item.featured), ...items.filter((item) => !item.featured)].slice(0, limit);
+}
 
 export default function HomePage() {
   const posts = getAllPosts();
+  const roadmap = getRoadmap();
+  const projects = getProjects();
+
+  const featured = pickFeatured(projects, 3);
+  const learning = roadmap.filter((stage) => stage.status === "doing");
+  const building = projects.filter((project) => project.status === "Đang làm");
+  // Ưu tiên giai đoạn đang học, rồi sắp tới — số thứ tự vẫn theo toàn bộ lộ trình.
+  const stages = roadmap
+    .map((stage, index) => ({ stage, index }))
+    .sort((a, b) => STATUS_PRIORITY[a.stage.status] - STATUS_PRIORITY[b.stage.status] || a.index - b.index)
+    .slice(0, 3);
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: site.title,
+          url: absoluteUrl("/"),
+          inLanguage: "vi",
+          author: personLd(),
+          potentialAction: {
+            "@type": "SearchAction",
+            target: { "@type": "EntryPoint", urlTemplate: `${absoluteUrl("/search")}?q={search_term_string}` },
+            "query-input": "required name=search_term_string",
+          },
+        }}
+      />
+
       {/* Hero */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden border-b-2 border-fg">
         <div className="bg-grid pointer-events-none absolute inset-0" aria-hidden />
-        <div className="bg-glow pointer-events-none absolute inset-0" aria-hidden />
-        <div className="relative mx-auto grid max-w-5xl items-center gap-12 px-5 pt-20 pb-20 sm:pt-28 lg:grid-cols-[1.1fr_1fr]">
-          <div className="animate-rise">
-            <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-mono text-xs text-muted">
-              <span className="size-1.5 rounded-full bg-accent-strong" aria-hidden />
+        <div className={`relative ${containerClass} grid items-end gap-12 pt-16 pb-16 sm:pt-24 lg:grid-cols-[1.5fr_1fr]`}>
+          <div>
+            <p className="inline-flex items-center gap-2 border border-border bg-surface px-3 py-1 font-mono text-xs text-muted">
+              <span className="size-2 bg-accent-strong" aria-hidden />
               {site.role}
             </p>
-            <h1 className="mt-6 text-4xl font-bold leading-[1.15] tracking-tight text-fg sm:text-5xl">
-              Xin chào, mình là <span className="text-accent">{site.name}</span>.
+            <h1 className="hero-title mt-6 font-display text-hero leading-[0.92] font-semibold tracking-tight text-fg">
+              {site.name}
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-              Đây là nơi mình ghi lại những gì học được trên hành trình trở thành AI Engineer — từ
-              LLM, RAG đến Agents — cùng các dự án mình xây trong lúc học.
+            <p className="mt-6 max-w-xl text-2xl leading-snug text-fg-soft">{site.headline}</p>
+            <p className="mt-3 max-w-xl text-lg leading-relaxed text-muted">
+              Sổ tay thí nghiệm của mình: dự án kèm cách làm và kết quả đo được, ghi chú về những gì vừa học.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/blog"
-                className="inline-flex h-11 items-center gap-2 rounded-lg bg-accent-strong px-5 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90"
-              >
-                Đọc blog <ArrowRight className="size-4" aria-hidden />
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link href="/work" className={buttonPrimary}>
+                Xem dự án <ArrowRight className="size-4" aria-hidden />
               </Link>
-              <Link
-                href="/#du-an"
-                className="inline-flex h-11 items-center rounded-lg border border-border bg-surface px-5 text-sm font-semibold text-fg transition-colors hover:border-subtle"
-              >
-                Xem dự án
+              <Link href="/blog" className={buttonSecondary}>
+                Đọc blog
               </Link>
             </div>
           </div>
 
-          {/* Terminal card (trang trí — nội dung thật nằm ở các section bên dưới) */}
-          <div
-            className="animate-rise overflow-hidden rounded-xl border border-border bg-surface shadow-2xl shadow-black/10 [animation-delay:120ms]"
-            aria-hidden
-          >
-            <div className="flex items-center gap-1.5 border-b border-border px-4 py-3">
-              <span className="size-3 rounded-full bg-[#ff5f57]" />
-              <span className="size-3 rounded-full bg-[#febc2e]" />
-              <span className="size-3 rounded-full bg-[#28c840]" />
+          {/* Khung terminal — trang trí, nhưng nội dung là thật nên vẫn để screen reader đọc được */}
+          <div className="border-2 border-fg bg-surface hard-shadow-static">
+            <div className="flex items-center gap-1.5 border-b border-border px-4 py-3" aria-hidden>
+              <span className="size-3 bg-[#ff5f57]" />
+              <span className="size-3 bg-[#febc2e]" />
+              <span className="size-3 bg-[#28c840]" />
               <span className="ml-3 font-mono text-xs text-subtle">zsh — ~/ai-engineering</span>
             </div>
-            <pre className="overflow-x-auto p-5 font-mono text-[13px] leading-7 text-fg-soft">
-              <span className="text-accent">$</span> whoami{"\n"}
-              <span className="text-muted">{site.handle} · aspiring AI engineer</span>{"\n"}
-              <span className="text-accent">$</span> cat now.txt{"\n"}
-              <LearningNow />
-              <span className="text-accent">$</span> ls notes/ | wc -l{"\n"}
-              <span className="text-muted">
-                <FeedCount posts={posts} /> bài viết
-              </span>
+            <pre className="overflow-x-auto p-5 font-mono text-xs leading-7 text-fg-soft" aria-label="Tóm tắt hiện tại">
+              <span className="text-accent" aria-hidden>$ </span>whoami{"\n"}
+              <span className="text-muted">{site.handle} · aspiring AI engineer</span>
               {"\n"}
-              <span className="text-accent">$</span> <span className="caret">▍</span>
+              <span className="text-accent" aria-hidden>$ </span>cat now.txt{"\n"}
+              {learning.map((stage) => (
+                <span key={stage.id}>
+                  <span className="text-accent" aria-hidden>→ </span>Đang học: {stage.title}{" "}
+                  <span className="text-subtle">[{stageProgress(stage).percent}%]</span>
+                  {"\n"}
+                </span>
+              ))}
+              <span className="text-accent" aria-hidden>$ </span>ls notes/ | wc -l{"\n"}
+              <span className="text-muted">{posts.length} bài viết</span>
+              {"\n"}
+              <span className="text-accent" aria-hidden>$ </span>
+              <span className="caret" aria-hidden>▍</span>
             </pre>
           </div>
         </div>
       </section>
 
-      <RoadmapSection />
-      <CredentialsSection />
-      <ProjectsSection />
-      <LatestPosts posts={posts} />
+      {/* Currently → /now */}
+      <section aria-label="Hiện tại" className="border-b border-border bg-surface">
+        <div className={`${containerClass} flex flex-wrap items-center gap-x-6 gap-y-2 py-4 font-mono text-sm`}>
+          <span className="bg-accent-strong px-2 py-0.5 text-on-accent">NOW</span>
+          {learning.map((stage) => (
+            <span key={stage.id} className="text-muted">
+              Đang học:{" "}
+              <Link href={stageHref(stage.id)} className="text-fg underline-offset-4 hover:underline">
+                {stage.title}
+              </Link>
+              {currentTopic(stage) && <span className="text-subtle"> ({currentTopic(stage)})</span>}
+            </span>
+          ))}
+          {building.map((project) => (
+            <span key={project.slug} className="text-muted">
+              Đang làm:{" "}
+              <Link href={`/work/${project.slug}`} className="text-fg underline-offset-4 hover:underline">
+                {project.title}
+              </Link>
+            </span>
+          ))}
+          <ViewAll href="/now" label="/now" />
+        </div>
+      </section>
+
+      {/* Featured work — bento */}
+      {featured.length > 0 && (
+        <section className={`reveal ${containerClass} py-20`} aria-labelledby="du-an">
+          <SectionHeading label="Work" title="Dự án nổi bật" id="du-an" action={<ViewAll href="/work" count={projects.length} />} />
+          <ul className="grid gap-4 md:grid-cols-3">
+            {featured.map((project, i) => (
+              <li key={project.slug} className={i === 0 ? "md:col-span-2 md:row-span-2" : ""}>
+                <ProjectCard project={project} featured={i === 0} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Lộ trình (rút gọn) */}
+      {stages.length > 0 && (
+        <section className={`reveal ${containerClass} py-16`} aria-labelledby="lo-trinh">
+          <SectionHeading
+            label="Roadmap"
+            title="Lộ trình học"
+            id="lo-trinh"
+            action={<ViewAll href="/roadmap" count={roadmap.length} label="Toàn bộ lộ trình" />}
+          />
+          <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {stages.map(({ stage, index }) => (
+              <li key={stage.id}>
+                <StageCard stage={stage} index={index} showBar={false} />
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {/* Latest writing */}
+      {posts.length > 0 && (
+        <section className={`reveal ${containerClass} py-16`} aria-labelledby="bai-moi">
+          <SectionHeading label="Writing" title="Ghi chú mới nhất" id="bai-moi" action={<ViewAll href="/blog" count={posts.length} />} />
+          <div className="grid gap-4 md:grid-cols-3">
+            {posts.slice(0, 3).map((post) => (
+              <PostCard key={post.slug} post={post} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Contact */}
-      <section className="mx-auto max-w-5xl px-5 pt-8 pb-24">
-        <div className="rounded-2xl border border-border bg-surface p-8 text-center sm:p-12">
-          <h2 className="text-2xl font-semibold tracking-tight text-fg">Cùng học AI nhé?</h2>
-          <p className="mx-auto mt-3 max-w-md text-muted">
+      <section className={`${containerClass} pt-8 pb-24`}>
+        <div className="border-2 border-fg bg-surface p-8 sm:p-12">
+          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">Cùng học AI nhé?</h2>
+          <p className="mt-3 max-w-xl text-lg text-muted">
             Nếu bạn cũng đang học AI Engineering hoặc muốn trao đổi về dự án, cứ nhắn cho mình.
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <a
-              href={`mailto:${site.email}`}
-              className="inline-flex h-11 items-center gap-2 rounded-lg bg-accent-strong px-5 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90"
-            >
-              <Mail className="size-4" aria-hidden /> Gửi email
-            </a>
-            <a
-              href={site.socials.github}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-11 items-center rounded-lg border border-border px-5 text-sm font-semibold text-fg transition-colors hover:border-subtle"
-            >
-              GitHub
-            </a>
-            <a
-              href={site.socials.linkedin}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-11 items-center rounded-lg border border-border px-5 text-sm font-semibold text-fg transition-colors hover:border-subtle"
-            >
-              LinkedIn
-            </a>
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link href="/contact" className={buttonPrimary}>
+              Liên hệ <ArrowRight className="size-4" aria-hidden />
+            </Link>
+            <Link href="/about" className={buttonSecondary}>
+              Về mình
+            </Link>
           </div>
         </div>
       </section>

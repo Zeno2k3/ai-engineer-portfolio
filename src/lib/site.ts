@@ -1,19 +1,65 @@
-// Toàn bộ thông tin cá nhân nằm ở đây — sửa file này là đủ để cá nhân hoá site.
+// Thông tin cá nhân + hằng số + hàm tiện ích dùng chung (chạy được cả server lẫn client).
+// Nội dung (lộ trình, chứng chỉ, dự án, bài viết) nằm trong thư mục content/ — xem src/lib/content.ts.
+
+import type { ProjectFrontmatter, RoadmapStage } from "@/lib/schema";
+
+export type {
+  Credential,
+  Project,
+  ProjectMeta,
+  ProjectMetric,
+  RoadmapStage,
+  RoadmapTopic,
+} from "@/lib/schema";
+
+const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
 
 export const site = {
   name: "Minh Quân",
   handle: "minhquan",
   role: "AI Engineer (đang trên hành trình)",
+  headline: "Học và xây hệ thống LLM: RAG, Agents, Evals.",
   title: "Minh Quân — Hành trình AI Engineer",
   description:
     "Portfolio và blog ghi lại những gì mình học được trên con đường trở thành AI Engineer: LLM, RAG, Agents, Evals và LLMOps.",
-  url: "https://example.com",
-  email: "you@example.com",
+  // Domain chính thức. Chỉ dùng phía server (canonical, sitemap, RSS, JSON-LD).
+  // Đặt NEXT_PUBLIC_SITE_URL khi có domain riêng; trên Vercel tự lấy domain production.
+  url:
+    process.env.NEXT_PUBLIC_SITE_URL ?? (productionHost ? `https://${productionHost}` : "http://localhost:3000"),
+  // Email hiện (dạng che) khi form liên hệ lỗi. Để trống nếu chưa muốn công khai.
+  email: "",
+  // Trạng thái hiện ở trang Liên hệ / Giới thiệu.
+  availability: { open: true, label: "Sẵn sàng trao đổi về dự án và cơ hội làm việc" },
+  // Link CV, ví dụ "/cv.pdf" (đặt file vào thư mục public/). Để trống thì ẩn nút tải CV.
+  cvUrl: "",
   socials: {
-    github: "https://github.com/your-username",
-    linkedin: "https://www.linkedin.com/in/your-username",
+    github: "https://github.com/Zeno2k3",
+    linkedin: "", // ví dụ "https://www.linkedin.com/in/ten-cua-ban"
+  },
+  about: {
+    bio: [
+      "Mình đang tự học để trở thành AI Engineer — tập trung vào việc đưa LLM vào sản phẩm thật: RAG, agents, và cách đo xem hệ thống có chạy tốt không.",
+      "Site này là sổ tay thí nghiệm của mình: mỗi dự án đi kèm cách làm và kết quả đo được, mỗi bài viết là thứ mình vừa học và tự kiểm chứng.",
+    ],
+    timeline: [
+      {
+        period: "2026 — nay",
+        title: "Tự học AI Engineering",
+        impact: "Đi hết nền tảng ML và LLM, đang xây DocChat (RAG) để áp dụng vào tài liệu thật.",
+      },
+    ],
   },
 };
+
+/** Các mạng xã hội đã điền (bỏ qua mục để trống). */
+export function socialLinks(): { label: string; href: string }[] {
+  return [
+    { label: "GitHub", href: site.socials.github },
+    { label: "LinkedIn", href: site.socials.linkedin },
+  ].filter((link) => link.href);
+}
+
+// ---------- Lộ trình ----------
 
 export const ROADMAP_STATUSES = ["done", "doing", "next"] as const;
 export type RoadmapStatus = (typeof ROADMAP_STATUSES)[number];
@@ -22,65 +68,6 @@ export const ROADMAP_STATUS_LABELS: Record<RoadmapStatus, string> = {
   doing: "Đang học",
   next: "Sắp tới",
 };
-
-export type RoadmapTopic = { name: string; done: boolean };
-
-export type RoadmapStage = {
-  id: string; // dùng trong link /roadmap?id=… và để gắn ghi chú/bài viết vào giai đoạn
-  title: string;
-  status: RoadmapStatus;
-  description?: string;
-  topics: RoadmapTopic[];
-};
-
-// Tạo danh sách chủ đề, `doneCount` chủ đề đầu tiên được đánh dấu đã học xong.
-const topics = (names: string[], doneCount: number): RoadmapTopic[] =>
-  names.map((name, i) => ({ name, done: i < doneCount }));
-
-export const roadmap: RoadmapStage[] = [
-  {
-    id: "nen-tang",
-    title: "Nền tảng",
-    status: "done",
-    description: "Python, xử lý dữ liệu và kiến thức ML cơ bản để hiểu các mô hình hoạt động thế nào.",
-    topics: topics(["Python", "NumPy / Pandas", "Đại số tuyến tính cơ bản", "Machine Learning cơ bản"], 4),
-  },
-  {
-    id: "llm-prompting",
-    title: "LLM & Prompt Engineering",
-    status: "done",
-    description: "Hiểu cách LLM xử lý văn bản và cách viết prompt cho kết quả ổn định.",
-    topics: topics(["Tokenization", "Context window", "Few-shot", "Structured output"], 4),
-  },
-  {
-    id: "rag",
-    title: "RAG & Vector Database",
-    status: "doing",
-    description: "Cho LLM đọc tài liệu riêng: chia nhỏ, nhúng vector, tìm kiếm và trả lời kèm nguồn.",
-    topics: topics(["Embeddings", "Chunking", "Vector search", "Reranking", "Hybrid search"], 2),
-  },
-  {
-    id: "agents",
-    title: "Agents & Tool Use",
-    status: "doing",
-    description: "Để LLM gọi công cụ, tự lập kế hoạch và làm việc nhiều bước.",
-    topics: topics(["Function calling", "MCP", "Agent loop", "Memory"], 1),
-  },
-  {
-    id: "evals-llmops",
-    title: "Evals & LLMOps",
-    status: "next",
-    description: "Đo chất lượng, theo dõi và vận hành ứng dụng LLM trên production.",
-    topics: topics(["Đánh giá chất lượng", "Observability", "Chi phí & độ trễ", "Deploy"], 0),
-  },
-  {
-    id: "fine-tuning",
-    title: "Fine-tuning",
-    status: "next",
-    description: "Tinh chỉnh model cho tác vụ riêng và biết khi nào nên dùng thay cho RAG.",
-    topics: topics(["LoRA", "Chuẩn bị dataset", "So sánh với RAG"], 0),
-  },
-];
 
 export function stageProgress(stage: RoadmapStage) {
   const total = stage.topics.length;
@@ -92,6 +79,13 @@ export function stageProgress(stage: RoadmapStage) {
 export function currentTopic(stage: RoadmapStage): string | undefined {
   return stage.status === "doing" ? stage.topics.find((topic) => !topic.done)?.name : undefined;
 }
+
+// ---------- Chứng chỉ & dự án ----------
+
+export const CREDENTIAL_KINDS = ["Chứng chỉ", "Khoá học"] as const;
+export const CREDENTIAL_STATUSES = ["Hoàn thành", "Đang học"] as const;
+export const PROJECT_STATUSES = ["Đang làm", "Hoàn thành", "Ý tưởng"] as const;
+export const PROJECT_DOMAINS = ["LLM", "RAG", "Agents", "Evals", "Infra", "OSS", "CV", "RL"] as const;
 
 /** "MM/YYYY" → số thứ tự tháng (năm * 12 + tháng), hoặc null nếu sai định dạng. */
 export function parseMonth(value?: string): number | null {
@@ -112,7 +106,7 @@ function formatMonths(total: number): string {
  * Tính cả tháng bắt đầu và tháng kết thúc. `now` là tháng hiện tại ("MM/YYYY"),
  * dùng cho dự án chưa có ngày kết thúc; null thì chưa tính được thời lượng.
  */
-export function projectTimeline(project: Project, now: string | null) {
+export function projectTimeline(project: Pick<ProjectFrontmatter, "startDate" | "endDate">, now: string | null) {
   const start = parseMonth(project.startDate);
   if (start === null) return null;
   const ongoing = !project.endDate;
@@ -122,97 +116,3 @@ export function projectTimeline(project: Project, now: string | null) {
     duration: end !== null && end >= start ? formatMonths(end - start + 1) : null,
   };
 }
-
-export const CREDENTIAL_KINDS = ["Chứng chỉ", "Khoá học"] as const;
-export const CREDENTIAL_STATUSES = ["Hoàn thành", "Đang học"] as const;
-export const PROJECT_STATUSES = ["Đang làm", "Hoàn thành", "Ý tưởng"] as const;
-
-// Dữ liệu bên dưới là "dữ liệu mẫu" ban đầu. Sau khi chỉnh trong trang /admin,
-// dữ liệu admin (lưu ở localStorage) sẽ được dùng thay thế.
-
-export type Credential = {
-  title: string;
-  issuer: string; // nơi cấp / nền tảng học
-  kind: (typeof CREDENTIAL_KINDS)[number];
-  status: (typeof CREDENTIAL_STATUSES)[number];
-  date: string; // tháng hoàn thành hoặc bắt đầu, dạng "MM/YYYY"
-  url?: string; // link xác minh chứng chỉ hoặc trang khoá học
-  note?: string; // 1 câu: học được gì
-  stageId?: string; // id giai đoạn lộ trình mà khoá học/chứng chỉ thuộc về
-  featured?: boolean; // ưu tiên hiện trên trang chủ
-};
-
-// Chứng chỉ & khoá học mẫu — thay bằng của bạn. Có `url` thì sẽ hiện nút "Xem".
-export const credentials: Credential[] = [
-  {
-    title: "Machine Learning Specialization",
-    issuer: "Coursera · DeepLearning.AI",
-    kind: "Chứng chỉ",
-    status: "Hoàn thành",
-    date: "06/2026",
-    note: "Regression, classification, neural network cơ bản.",
-    stageId: "nen-tang",
-    featured: true,
-  },
-  {
-    title: "Python for Data Science",
-    issuer: "Tên nền tảng",
-    kind: "Chứng chỉ",
-    status: "Hoàn thành",
-    date: "03/2026",
-    note: "NumPy, Pandas, trực quan hoá dữ liệu.",
-    stageId: "nen-tang",
-  },
-  {
-    title: "Xây dựng ứng dụng với LLM",
-    issuer: "Tên nền tảng",
-    kind: "Khoá học",
-    status: "Đang học",
-    date: "08/2026",
-    note: "Prompting, RAG, function calling.",
-    stageId: "rag",
-  },
-];
-
-export type Project = {
-  title: string;
-  description: string;
-  stack: string[];
-  status: (typeof PROJECT_STATUSES)[number];
-  repo?: string;
-  demo?: string;
-  startDate?: string; // "MM/YYYY"
-  endDate?: string; // "MM/YYYY" — để trống nếu đang làm
-  featured?: boolean; // ưu tiên hiện trên trang chủ
-};
-
-// Dự án mẫu — thay bằng dự án thật của bạn.
-export const projects: Project[] = [
-  {
-    title: "DocChat — hỏi đáp tài liệu nội bộ",
-    description:
-      "Chatbot RAG đọc tài liệu PDF, chia chunk, lưu embeddings vào vector DB và trả lời kèm trích dẫn nguồn.",
-    stack: ["Python", "FastAPI", "pgvector", "LLM API"],
-    status: "Đang làm",
-    repo: "https://github.com/your-username/docchat",
-    startDate: "07/2026",
-    featured: true,
-  },
-  {
-    title: "Prompt Lab",
-    description:
-      "Công cụ nhỏ để so sánh nhiều phiên bản prompt trên cùng một bộ test case và chấm điểm output.",
-    stack: ["TypeScript", "Next.js", "SQLite"],
-    status: "Hoàn thành",
-    repo: "https://github.com/your-username/prompt-lab",
-    startDate: "04/2026",
-    endDate: "05/2026",
-  },
-  {
-    title: "Mini Eval Harness",
-    description:
-      "Bộ khung đánh giá LLM tự viết: dataset dạng JSONL, nhiều loại grader (exact match, LLM-as-judge) và báo cáo.",
-    stack: ["Python", "Pytest", "Pandas"],
-    status: "Ý tưởng",
-  },
-];

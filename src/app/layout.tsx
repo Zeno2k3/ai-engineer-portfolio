@@ -1,52 +1,72 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Be_Vietnam_Pro, JetBrains_Mono } from "next/font/google";
+import { Fraunces, JetBrains_Mono, Newsreader } from "next/font/google";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { site } from "@/lib/site";
 import "./globals.css";
 
-const beVietnam = Be_Vietnam_Pro({
-  variable: "--font-be-vietnam",
+// Font đều có subset tiếng Việt (spec ghi "subset Latin" — với site tiếng Việt sẽ vỡ dấu).
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700"],
+  axes: ["opsz"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin", "vietnamese"],
+  axes: ["opsz"],
+  preload: false,
 });
 
 const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
   subsets: ["latin", "vietnamese"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(site.url),
   title: { default: site.title, template: `%s — ${site.name}` },
   description: site.description,
+  alternates: {
+    types: { "application/rss+xml": [{ url: "/rss.xml", title: `${site.name} — RSS` }] },
+  },
+  openGraph: {
+    type: "website",
+    siteName: site.title,
+    locale: "vi_VN",
+    title: site.title,
+    description: site.description,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
-// Chạy trước khi paint để không bị nháy sai theme. Mặc định: tối.
-const themeScript = `(function(){try{var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t!=='light')}catch(e){document.documentElement.classList.add('dark')}})()`;
+// Chạy trước khi paint để không nháy sai theme. Mặc định: theo hệ điều hành.
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="vi"
-      className={`${beVietnam.variable} ${jetbrains.variable} dark`}
+      className={`${newsreader.variable} ${fraunces.variable} ${jetbrains.variable} dark`}
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-dvh flex flex-col font-sans antialiased">
+      <body className="flex min-h-dvh flex-col antialiased">
+        <a
+          href="#main"
+          className="sr-only z-50 bg-accent-strong px-4 py-3 font-mono text-sm text-on-accent focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        >
+          Bỏ qua điều hướng
+        </a>
         <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <footer className="border-t border-border">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-5 py-8 font-mono text-sm text-subtle">
-            <span>
-              © {new Date().getFullYear()} {site.name} · Học mỗi ngày một chút.
-            </span>
-            <Link href="/admin" className="py-2 transition-colors hover:text-fg">
-              Admin
-            </Link>
-          </div>
-        </footer>
+        <main id="main" tabIndex={-1} className="flex-1 outline-none">
+          {children}
+        </main>
+        <SiteFooter />
       </body>
     </html>
   );

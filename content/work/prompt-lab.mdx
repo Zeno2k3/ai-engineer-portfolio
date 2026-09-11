@@ -1,0 +1,21 @@
+---
+title: Prompt Lab
+tagline: Công cụ nhỏ để so sánh nhiều phiên bản prompt trên cùng một bộ test case và chấm điểm output.
+domain: LLM
+status: Hoàn thành
+stack:
+  - TypeScript
+  - Next.js
+  - SQLite
+startDate: 04/2026
+endDate: 05/2026
+stage: llm-prompting
+---
+
+## Vấn đề
+
+Sửa prompt theo cảm tính rất dễ "sửa chỗ này hỏng chỗ kia": một thay đổi làm tốt hơn ở ví dụ đang xem nhưng tệ hơn ở những ví dụ khác.
+
+## Cách tiếp cận
+
+Chạy nhiều phiên bản prompt trên **cùng một bộ test case**, lưu output vào SQLite và chấm điểm để so sánh các phiên bản cạnh nhau thay vì đọc từng câu trả lời.

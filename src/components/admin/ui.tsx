@@ -28,7 +28,7 @@ export function Button({
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-[15px] text-fg placeholder:text-subtle transition-colors focus:border-accent-strong focus:outline-none focus:ring-2 focus:ring-accent-strong/30";
+  "w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-[15px] text-fg placeholder:text-subtle transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-strong/30";
 
 function FieldShell({
   id,

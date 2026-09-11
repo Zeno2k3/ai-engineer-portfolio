@@ -1,13 +1,15 @@
 import type { ReactNode } from "react";
-import { Info, Lightbulb, TriangleAlert } from "lucide-react";
+import { CircleAlert, Info, Lightbulb, OctagonAlert, TriangleAlert } from "lucide-react";
 
 const variants = {
-  note: { icon: Info, label: "Ghi chú" },
-  tip: { icon: Lightbulb, label: "Mẹo" },
-  warn: { icon: TriangleAlert, label: "Lưu ý" },
+  note: { icon: Info, label: "Ghi chú", border: "border-l-fg" },
+  info: { icon: Info, label: "Thông tin", border: "border-l-fg" },
+  tip: { icon: Lightbulb, label: "Mẹo", border: "border-l-accent" },
+  warn: { icon: TriangleAlert, label: "Lưu ý", border: "border-l-accent-2" },
+  danger: { icon: OctagonAlert, label: "Cẩn thận", border: "border-l-accent-2" },
 };
 
-// Dùng trong MDX: <Callout type="tip">Nội dung</Callout>
+// Dùng trong MDX: <Callout type="tip">Nội dung</Callout> — type: note | info | tip | warn | danger
 export function Callout({
   type = "note",
   title,
@@ -17,12 +19,13 @@ export function Callout({
   title?: string;
   children: ReactNode;
 }) {
-  const { icon: Icon, label } = variants[type];
+  const variant = variants[type] ?? { icon: CircleAlert, label: "Ghi chú", border: "border-l-fg" };
+  const { icon: Icon, label } = variant;
   return (
-    <aside className="not-prose my-6 flex gap-3 rounded-xl border border-border border-l-4 border-l-accent-strong bg-surface-2 p-4">
-      <Icon className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
-      <div className="text-[15px] leading-relaxed text-fg-soft">
-        <p className="mb-1 font-semibold text-fg">{title ?? label}</p>
+    <aside className={`not-prose my-6 flex gap-3 border border-border border-l-4 bg-surface-2 p-4 ${variant.border}`}>
+      <Icon className="mt-1 size-5 shrink-0 text-fg" aria-hidden />
+      <div className="leading-relaxed text-fg-soft [&_p]:m-0">
+        <p className="mb-1 font-mono text-sm font-semibold uppercase tracking-wide text-fg">{title ?? label}</p>
         {children}
       </div>
     </aside>

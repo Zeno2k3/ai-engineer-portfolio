@@ -1,18 +1,30 @@
 import type { Metadata } from "next";
-import { BlogFeed } from "@/components/content-sections";
-import { getAllPosts } from "@/lib/posts";
+import { PostList } from "@/components/post-card";
+import { PageHeader } from "@/components/section-heading";
+import { TagNav } from "@/components/tag-nav";
+import { getAllPosts, getAllTags } from "@/lib/posts";
+import { containerClass } from "@/lib/ui";
 
 export const metadata: Metadata = {
   title: "Blog",
   description: "Ghi chú học AI Engineering: LLM, RAG, Agents, Evals.",
+  alternates: { canonical: "/blog" },
 };
 
 export default function BlogPage() {
+  const posts = getAllPosts();
+
   return (
-    <div className="mx-auto max-w-3xl px-5 py-16 sm:py-20">
-      <p className="font-mono text-xs uppercase tracking-widest text-accent">Blog</p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight text-fg sm:text-4xl">Ghi chú học tập</h1>
-      <BlogFeed posts={getAllPosts()} />
+    <div className={`${containerClass} py-16 sm:py-20`}>
+      <PageHeader
+        label="Blog"
+        title="Ghi chú học tập"
+        description={`Những gì mình học được về AI Engineering — viết lại theo cách mình hiểu. ${posts.length} bài viết.`}
+      />
+      <TagNav tags={getAllTags()} />
+      <div className="max-w-3xl">
+        <PostList posts={posts} />
+      </div>
     </div>
   );
 }

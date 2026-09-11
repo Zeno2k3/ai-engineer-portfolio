@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfolio + Blog — Hành trình AI Engineer
 
-## Getting Started
+Next.js 16 (App Router, build tĩnh) · MDX · Shiki · KaTeX · Tailwind CSS 4. Spec sản phẩm: [docs/product.md](docs/product.md).
 
-First, run the development server:
+## Chạy local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm run build   # build production (kiểm tra nội dung + TypeScript)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Nội dung nằm ở đâu
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Toàn bộ nội dung là **file trong thư mục `content/`** — site đọc chúng lúc build, nên ai vào site cũng thấy giống nhau.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Nội dung | File | URL |
+|---|---|---|
+| Lộ trình học | `content/roadmap.json` | `/roadmap`, `/roadmap/<id>` |
+| Chứng chỉ & khoá học | `content/credentials.json` | `/certificates`, `/about` |
+| Dự án (case study) | `content/work/<slug>.mdx` | `/work/<slug>` |
+| Bài viết | `content/blog/<slug>.mdx` | `/blog/<slug>` |
+| Trang Now | `content/now.mdx` | `/now` |
+| Thông tin cá nhân | `src/lib/site.ts` | mọi trang |
 
-## Learn More
+Định dạng từng trường được kiểm tra bằng schema trong `src/lib/schema.ts`: gõ sai (ví dụ tháng không phải `MM/YYYY`) thì `npm run build` dừng lại và báo rõ file + trường nào sai.
 
-To learn more about Next.js, take a look at the following resources:
+## Cách sửa nội dung
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Cách 1 — sửa file trực tiếp:** mở file trong `content/`, sửa, rồi:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+git add content
+git commit -m "Thêm chứng chỉ X"
+git push          # Vercel tự build lại (~1 phút)
+```
 
-## Deploy on Vercel
+**Cách 2 — dùng form admin (chỉ chạy local):** `npm run dev` → mở `http://localhost:3000/admin`. Bấm **Lưu** sẽ ghi thẳng vào file trong `content/`; sau đó commit & push như trên. Trên bản production, `/admin` chỉ hiện hướng dẫn và không ghi được gì.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Frontmatter bài viết:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```yaml
+---
+title: "Tiêu đề (≤ 110 ký tự)"
+description: "Mô tả ngắn (≤ 200 ký tự)"
+date: 2026-09-11
+updated: 2026-09-20      # tuỳ chọn
+tags: [rag, llm]
+stage: rag               # id giai đoạn lộ trình (tuỳ chọn)
+series: "RAG từ con số 0" # tuỳ chọn, kèm seriesPart: 1
+math: true               # bật KaTeX cho $…$
+draft: true              # nháp: chỉ hiện khi chạy local
+---
+```
+
+Trong MDX dùng được `<Callout type="note|info|tip|warn|danger">…</Callout>` và code block có tiêu đề/đánh dấu dòng: ` ```python title="main.py" {2-3} `.
+
+## Biến môi trường
+
+Xem [.env.example](.env.example): `NEXT_PUBLIC_SITE_URL` (domain), `RESEND_API_KEY` + `CONTACT_TO_EMAIL` (form liên hệ).
