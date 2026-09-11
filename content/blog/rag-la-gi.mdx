@@ -1,0 +1,69 @@
+---
+title: "RAG là gì? Tự xây pipeline hỏi đáp tài liệu từ con số 0"
+description: "Ghi chú về Retrieval-Augmented Generation: tại sao cần RAG, các bước chunking → embedding → retrieval → generation, và code minh hoạ bằng Python thuần."
+date: 2026-09-08
+tags: [rag, embeddings, llm]
+stage: rag
+---
+
+LLM rất giỏi ngôn ngữ nhưng **không biết gì về tài liệu riêng của bạn** và kiến thức của nó dừng lại ở thời điểm train. RAG (Retrieval-Augmented Generation) giải quyết chuyện đó: trước khi hỏi model, ta **tìm** những đoạn tài liệu liên quan rồi **nhét** chúng vào prompt.
+
+## Pipeline tổng quan
+
+1. **Chunking** — chia tài liệu thành các đoạn nhỏ.
+2. **Embedding** — biến mỗi đoạn thành một vector.
+3. **Retrieval** — khi có câu hỏi, tìm các vector gần nhất.
+4. **Generation** — đưa các đoạn tìm được + câu hỏi cho LLM trả lời.
+
+## Bước 1: Chunking
+
+Chunk quá dài thì nhiễu, quá ngắn thì mất ngữ cảnh. Cách đơn giản nhất là cắt theo số từ và cho các chunk **chồng lên nhau** một chút:
+
+```python title="chunking.py"
+def chunk_text(text: str, size: int = 200, overlap: int = 40) -> list[str]:
+    words = text.split()
+    chunks = []
+    step = size - overlap
+    for start in range(0, len(words), step):
+        chunks.append(" ".join(words[start : start + size]))
+    return chunks
+```
+
+<Callout type="tip">
+  Với tài liệu có cấu trúc (Markdown, HTML), cắt theo heading/đoạn văn thường cho kết quả tốt hơn cắt theo số từ.
+</Callout>
+
+## Bước 2 & 3: Embedding và tìm kiếm
+
+Embedding model biến văn bản thành vector sao cho các câu **cùng nghĩa nằm gần nhau**. Độ "gần" thường đo bằng cosine similarity:
+
+```python title="retrieval.py"
+import numpy as np
+
+def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    return float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+def top_k(query_vec, chunk_vecs, k: int = 3) -> list[int]:
+    scores = [cosine_similarity(query_vec, v) for v in chunk_vecs]
+    return sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]
+```
+
+Khi dữ liệu lớn, ta dùng vector database (pgvector, Qdrant, Chroma…) thay cho vòng lặp này.
+
+## Bước 4: Generation
+
+| Thành phần | Vai trò |
+| --- | --- |
+| System prompt | Dặn model chỉ trả lời dựa trên ngữ cảnh |
+| Context | Các chunk tìm được, kèm nguồn |
+| Câu hỏi | Câu hỏi gốc của người dùng |
+
+<Callout type="warn">
+  Nếu retrieval trả về sai đoạn, model sẽ trả lời sai một cách rất tự tin. Hãy đánh giá riêng chất lượng retrieval trước khi tối ưu prompt.
+</Callout>
+
+## Điều mình rút ra
+
+- RAG tốt hay dở phụ thuộc **70% vào retrieval**, không phải model.
+- Luôn trả kèm nguồn trích dẫn để người dùng kiểm chứng.
+- Bước tiếp theo mình muốn thử: **reranking** và **hybrid search** (BM25 + vector).

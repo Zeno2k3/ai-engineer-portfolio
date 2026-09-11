@@ -1,0 +1,49 @@
+---
+title: "Prompt engineering cơ bản: 5 nguyên tắc mình dùng mỗi ngày"
+description: "Rõ ràng, có ngữ cảnh, có ví dụ, có định dạng đầu ra và có cách kiểm tra — những nguyên tắc giúp output của LLM ổn định hơn hẳn."
+date: 2026-08-25
+tags: [prompt-engineering, llm]
+stage: llm-prompting
+---
+
+Khi mới học, mình nghĩ prompt engineering là tìm "câu thần chú". Thực tế nó giống **viết yêu cầu công việc cho một đồng nghiệp rất giỏi nhưng không biết gì về dự án của bạn**.
+
+## 1. Nói rõ nhiệm vụ và bối cảnh
+
+Thay vì `Tóm tắt bài này`, hãy nói **cho ai**, **để làm gì**, **dài bao nhiêu**:
+
+```text
+Tóm tắt bài báo dưới đây cho một kỹ sư backend chưa biết về ML,
+trong 5 gạch đầu dòng, mỗi dòng không quá 20 từ.
+```
+
+## 2. Cho ví dụ (few-shot)
+
+Một vài ví dụ input → output giúp model hiểu định dạng nhanh hơn mọi lời giải thích.
+
+```python title="few_shot.py"
+EXAMPLES = [
+    ("Giao hàng chậm quá!", "negative"),
+    ("Sản phẩm dùng rất ổn", "positive"),
+]
+
+def build_prompt(review: str) -> str:
+    shots = "\n".join(f"Review: {r}\nLabel: {l}" for r, l in EXAMPLES)
+    return f"Phân loại cảm xúc của review.\n\n{shots}\n\nReview: {review}\nLabel:"
+```
+
+## 3. Chỉ định định dạng đầu ra
+
+Nếu output sẽ được code đọc, hãy yêu cầu JSON với schema cụ thể — hoặc tốt hơn là dùng tính năng **structured output** của API.
+
+## 4. Tách dữ liệu khỏi chỉ dẫn
+
+Bọc dữ liệu người dùng trong thẻ như `<document>...</document>` để model không nhầm nội dung tài liệu với chỉ dẫn của bạn.
+
+<Callout type="note">
+  Cách này cũng giúp giảm rủi ro prompt injection, dù không loại bỏ hoàn toàn.
+</Callout>
+
+## 5. Có bộ test cho prompt
+
+Prompt cũng là code. Mình giữ 10–20 test case và chạy lại mỗi khi sửa prompt để chắc chắn không làm hỏng các trường hợp cũ.
