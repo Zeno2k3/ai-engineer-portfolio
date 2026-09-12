@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { ProjectCard, StageCard, ViewAll, stageHref } from "@/components/content-sections";
+import { ProjectCard, StageCard, ViewAll } from "@/components/content-sections";
 import { JsonLd } from "@/components/json-ld";
 import { PostCard } from "@/components/post-card";
 import { SectionHeading } from "@/components/section-heading";
 import { getProjects, getRoadmap } from "@/lib/content";
 import { absoluteUrl, personLd } from "@/lib/jsonld";
 import { getAllPosts } from "@/lib/posts";
-import { currentTopic, site, stageProgress, type RoadmapStatus } from "@/lib/site";
+import { site, stageProgress, type RoadmapStatus } from "@/lib/site";
 import { buttonPrimary, buttonSecondary, containerClass } from "@/lib/ui";
 
 export const metadata: Metadata = {
@@ -32,7 +32,6 @@ export default function HomePage() {
 
   const featured = pickFeatured(projects, 3);
   const learning = roadmap.filter((stage) => stage.status === "doing");
-  const building = projects.filter((project) => project.status === "Đang làm");
   // Ưu tiên giai đoạn đang học, rồi sắp tới — số thứ tự vẫn theo toàn bộ lộ trình.
   const stages = roadmap
     .map((stage, index) => ({ stage, index }))
@@ -110,31 +109,6 @@ export default function HomePage() {
               <span className="caret" aria-hidden>▍</span>
             </pre>
           </div>
-        </div>
-      </section>
-
-      {/* Currently → /now */}
-      <section aria-label="Hiện tại" className="border-b border-border bg-surface">
-        <div className={`${containerClass} flex flex-wrap items-center gap-x-6 gap-y-2 py-4 font-mono text-sm`}>
-          <span className="bg-accent-strong px-2 py-0.5 text-on-accent">NOW</span>
-          {learning.map((stage) => (
-            <span key={stage.id} className="text-muted">
-              Đang học:{" "}
-              <Link href={stageHref(stage.id)} className="text-fg underline-offset-4 hover:underline">
-                {stage.title}
-              </Link>
-              {currentTopic(stage) && <span className="text-subtle"> ({currentTopic(stage)})</span>}
-            </span>
-          ))}
-          {building.map((project) => (
-            <span key={project.slug} className="text-muted">
-              Đang làm:{" "}
-              <Link href={`/work/${project.slug}`} className="text-fg underline-offset-4 hover:underline">
-                {project.title}
-              </Link>
-            </span>
-          ))}
-          <ViewAll href="/now" label="/now" />
         </div>
       </section>
 
