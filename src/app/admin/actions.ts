@@ -9,7 +9,15 @@ import matter from "gray-matter";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { CONTENT_DIR } from "@/lib/content";
-import { credentialsSchema, formatZodError, postSchema, projectSchema, roadmapSchema, slugSchema } from "@/lib/schema";
+import {
+  credentialsSchema,
+  formatZodError,
+  postSchema,
+  profileSchema,
+  projectSchema,
+  roadmapSchema,
+  slugSchema,
+} from "@/lib/schema";
 
 export type SaveResult = { ok: boolean; message: string };
 
@@ -85,6 +93,13 @@ async function syncMdxDir(dir: string, entries: MdxEntry[], schema: z.ZodType) {
 }
 
 const mdxItem = z.looseObject({ slug: slugSchema, body: z.string() });
+
+export async function saveProfile(data: unknown) {
+  return run(async () => {
+    await writeJson("profile.json", profileSchema.parse(data));
+    return "Đã lưu content/profile.json.";
+  });
+}
 
 export async function saveRoadmap(items: unknown) {
   return run(async () => {

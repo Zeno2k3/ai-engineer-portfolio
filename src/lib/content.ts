@@ -9,9 +9,11 @@ import {
   credentialsSchema,
   formatZodError,
   nowSchema,
+  profileSchema,
   projectSchema,
   roadmapSchema,
   type Credential,
+  type Profile,
   type Project,
   type ProjectMeta,
   type RoadmapStage,
@@ -46,6 +48,15 @@ export function readMdxDir<T extends z.ZodType>(dir: string, schema: T) {
         content: content.trim(),
       };
     });
+}
+
+/**
+ * Hồ sơ cá nhân (tên, bio, timeline, liên hệ…) — sửa ở /admin → tab "Giới thiệu".
+ * Đọc lại từ file mỗi lần render nên trang cập nhật ngay sau khi lưu; `site` trong
+ * src/lib/site.ts là bản import tĩnh của cùng file này, dùng cho client component.
+ */
+export function getProfile(): Profile {
+  return readJson("profile.json", profileSchema);
 }
 
 export function getRoadmap(): RoadmapStage[] {

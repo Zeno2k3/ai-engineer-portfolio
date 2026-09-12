@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown";
 import { useCurrentMonth } from "@/components/project-timeline";
 import {
@@ -27,11 +27,13 @@ import {
   projectTimeline,
   stageProgress,
   type Credential,
+  type Profile,
   type Project,
   type ProjectMetric,
   type RoadmapStage,
   type RoadmapStatus,
   type RoadmapTopic,
+  type TimelineItem,
 } from "@/lib/site";
 import { slugify, toTags, today, uniqueSlug } from "@/lib/utils";
 
@@ -214,6 +216,354 @@ function CollectionEditor<T>({
         </ul>
       )}
     </div>
+  );
+}
+
+// ---------- Hồ sơ cá nhân (content/profile.json) ----------
+
+/** Tiêu đề nhóm trường trong form hồ sơ. */
+function FormSection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <fieldset className="space-y-4 border-t border-border pt-5 first:border-t-0 first:pt-0">
+      <legend className="sr-only">{title}</legend>
+      <div>
+        <h4 className="font-mono text-xs uppercase tracking-widest text-accent">{title}</h4>
+        {hint && <p className="mt-1 text-xs text-subtle">{hint}</p>}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+    </fieldset>
+  );
+}
+
+// Các đoạn văn giới thiệu ở /about. Giá trị gửi qua input ẩn dạng JSON (giống TopicsField).
+function BioField({ defaultValue, onEdit }: { defaultValue: string[]; onEdit: () => void }) {
+  const [paragraphs, setParagraphs] = useState<string[]>(defaultValue.length > 0 ? defaultValue : [""]);
+  const filled = paragraphs.map((paragraph) => paragraph.trim()).filter(Boolean);
+
+  return (
+    <fieldset className="space-y-3 sm:col-span-2">
+      <legend className="text-sm font-medium text-fg">Đoạn giới thiệu</legend>
+      <p className="text-xs text-subtle">
+        Mỗi ô là một đoạn văn ở đầu trang /about ({filled.length} đoạn sẽ được lưu). Ô để trống bị bỏ qua.
+      </p>
+      <input type="hidden" name="bio" value={JSON.stringify(filled)} />
+      <ul className="space-y-2">
+        {paragraphs.map((paragraph, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <textarea
+              value={paragraph}
+              onChange={(e) => setParagraphs(paragraphs.map((p, j) => (j === i ? e.target.value : p)))}
+              rows={3}
+              aria-label={`Đoạn giới thiệu ${i + 1}`}
+              placeholder="Mình đang tự học để trở thành AI Engineer — tập trung vào…"
+              className={`${inputClass} leading-relaxed`}
+            />
+            <Button
+              variant="ghost"
+              className="px-2.5"
+              disabled={paragraphs.length === 1}
+              onClick={() => {
+                setParagraphs(paragraphs.filter((_, j) => j !== i));
+                onEdit();
+              }}
+              aria-label={`Xoá đoạn giới thiệu ${i + 1}`}
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+          </li>
+        ))}
+      </ul>
+      <Button
+        variant="secondary"
+        onClick={() => {
+          setParagraphs([...paragraphs, ""]);
+          onEdit();
+        }}
+      >
+        <Plus className="size-4" aria-hidden /> Thêm đoạn
+      </Button>
+    </fieldset>
+  );
+}
+
+const EMPTY_TIMELINE_ITEM: TimelineItem = { period: "", title: "", impact: "" };
+
+// Mốc "Hành trình" ở /about: cần đủ 3 ô thì mục mới được lưu.
+function TimelineField({ defaultValue, onEdit }: { defaultValue: TimelineItem[]; onEdit: () => void }) {
+  const [items, setItems] = useState<TimelineItem[]>(
+    defaultValue.length > 0 ? defaultValue : [EMPTY_TIMELINE_ITEM],
+  );
+  const filled = items
+    .map((item) => ({ period: item.period.trim(), title: item.title.trim(), impact: item.impact.trim() }))
+    .filter((item) => item.period && item.title && item.impact);
+
+  function patch(index: number, change: Partial<TimelineItem>) {
+    setItems(items.map((item, i) => (i === index ? { ...item, ...change } : item)));
+  }
+
+  function move(index: number, delta: -1 | 1) {
+    const target = index + delta;
+    if (target < 0 || target >= items.length) return;
+    const next = [...items];
+    [next[index], next[target]] = [next[target], next[index]];
+    setItems(next);
+    onEdit();
+  }
+
+  return (
+    <fieldset className="space-y-3 sm:col-span-2">
+      <legend className="text-sm font-medium text-fg">Hành trình (timeline)</legend>
+      <p className="text-xs text-subtle">
+        Các mốc hiện ở mục “Hành trình” trang /about, theo đúng thứ tự dưới đây ({filled.length} mốc sẽ được lưu).
+        Mốc thiếu ô sẽ bị bỏ qua.
+      </p>
+      <input type="hidden" name="timeline" value={JSON.stringify(filled)} />
+      <ul className="space-y-3">
+        {items.map((item, i) => (
+          <li key={i} className="space-y-2 border border-border bg-bg p-3">
+            <div className="flex items-center gap-2">
+              <input
+                value={item.period}
+                onChange={(e) => patch(i, { period: e.target.value })}
+                aria-label={`Mốc ${i + 1}: thời gian`}
+                placeholder="2026 — nay"
+                className={`${inputClass} font-mono sm:max-w-48`}
+              />
+              <div className="ml-auto flex gap-1">
+                <Button
+                  variant="ghost"
+                  className="px-2.5"
+                  disabled={i === 0}
+                  onClick={() => move(i, -1)}
+                  aria-label={`Đưa mốc ${i + 1} lên`}
+                >
+                  <ArrowUp className="size-4" aria-hidden />
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="px-2.5"
+                  disabled={i === items.length - 1}
+                  onClick={() => move(i, 1)}
+                  aria-label={`Đưa mốc ${i + 1} xuống`}
+                >
+                  <ArrowDown className="size-4" aria-hidden />
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="px-2.5"
+                  disabled={items.length === 1}
+                  onClick={() => {
+                    setItems(items.filter((_, j) => j !== i));
+                    onEdit();
+                  }}
+                  aria-label={`Xoá mốc ${i + 1}`}
+                >
+                  <X className="size-4" aria-hidden />
+                </Button>
+              </div>
+            </div>
+            <input
+              value={item.title}
+              onChange={(e) => patch(i, { title: e.target.value })}
+              aria-label={`Mốc ${i + 1}: tiêu đề`}
+              placeholder="Tự học AI Engineering"
+              className={inputClass}
+            />
+            <textarea
+              value={item.impact}
+              onChange={(e) => patch(i, { impact: e.target.value })}
+              rows={2}
+              aria-label={`Mốc ${i + 1}: kết quả`}
+              placeholder="Làm được gì, kết quả đo được ra sao?"
+              className={`${inputClass} leading-relaxed`}
+            />
+          </li>
+        ))}
+      </ul>
+      <Button
+        variant="secondary"
+        onClick={() => {
+          setItems([...items, EMPTY_TIMELINE_ITEM]);
+          onEdit();
+        }}
+      >
+        <Plus className="size-4" aria-hidden /> Thêm mốc
+      </Button>
+    </fieldset>
+  );
+}
+
+export function ProfileEditor({
+  profile,
+  pending,
+  onChange,
+}: {
+  profile: Profile;
+  /** Đang ghi file — khoá nút Lưu để tránh bấm hai lần. */
+  pending: boolean;
+  onChange: (profile: Profile) => void;
+}) {
+  // Cờ "chưa lưu" tự về false sau mỗi lần lưu thành công: AdminApp đổi `key` → form mount lại.
+  const [dirty, setDirty] = useState(false);
+  const markDirty = () => setDirty(true);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fd = new FormData(event.currentTarget);
+    onChange({
+      name: text(fd, "name"),
+      handle: slugify(text(fd, "handle")) || profile.handle,
+      role: text(fd, "role"),
+      headline: text(fd, "headline"),
+      title: text(fd, "title"),
+      description: text(fd, "description"),
+      email: text(fd, "email"),
+      cvUrl: text(fd, "cvUrl"),
+      availability: { open: fd.get("availabilityOpen") === "on", label: text(fd, "availabilityLabel") },
+      socials: { github: text(fd, "github"), linkedin: text(fd, "linkedin") },
+      about: {
+        bio: JSON.parse(text(fd, "bio") || "[]") as string[],
+        timeline: JSON.parse(text(fd, "timeline") || "[]") as TimelineItem[],
+      },
+    });
+  }
+
+  return (
+    // onInput bắt mọi lần gõ; các nút thêm/xoá/đổi thứ tự tự gọi markDirty.
+    <form onSubmit={handleSubmit} onInput={markDirty} className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted">Thông tin cá nhân hiện ở trang Giới thiệu, Liên hệ, trang chủ và header/footer.</p>
+        <Link href="/about" className={buttonClass("secondary")}>
+          Xem trang Giới thiệu
+        </Link>
+      </div>
+
+      <div className="space-y-6 border-2 border-fg bg-surface p-5 sm:p-6">
+        <FormSection title="Bạn là ai">
+          <TextField label="Tên hiển thị" name="name" required defaultValue={profile.name} placeholder="Minh Quân" />
+          <TextField
+            label="Handle"
+            name="handle"
+            required
+            defaultValue={profile.handle}
+            placeholder="minhquan"
+            hint="Hiện dạng @handle ở header. Chỉ chữ thường không dấu, số và dấu gạch ngang."
+          />
+          <TextField
+            label="Chức danh"
+            name="role"
+            required
+            defaultValue={profile.role}
+            placeholder="AI Engineer (đang trên hành trình)"
+            wrapperClassName="sm:col-span-2"
+          />
+          <TextAreaField
+            label="Câu mở đầu (headline)"
+            name="headline"
+            required
+            rows={2}
+            defaultValue={profile.headline}
+            placeholder="Học và xây hệ thống LLM: RAG, Agents, Evals."
+            hint="Hiện ở trang chủ và trên ảnh Open Graph khi chia sẻ link."
+            wrapperClassName="sm:col-span-2"
+          />
+        </FormSection>
+
+        <FormSection title="Trang giới thiệu" hint="Nội dung riêng của trang /about.">
+          <BioField defaultValue={profile.about.bio} onEdit={markDirty} />
+          <TimelineField defaultValue={profile.about.timeline} onEdit={markDirty} />
+        </FormSection>
+
+        <FormSection title="Liên hệ & trạng thái">
+          <CheckboxField
+            label="Đang mở cơ hội (Open to work)"
+            name="availabilityOpen"
+            defaultChecked={profile.availability.open}
+            hint="Hiện chấm xanh “Open to work” ở trang Giới thiệu và Liên hệ"
+            wrapperClassName="sm:col-span-2"
+          />
+          <TextField
+            label="Mô tả trạng thái"
+            name="availabilityLabel"
+            required
+            defaultValue={profile.availability.label}
+            placeholder="Sẵn sàng trao đổi về dự án và cơ hội làm việc"
+            wrapperClassName="sm:col-span-2"
+          />
+          <TextField
+            label="Email"
+            name="email"
+            defaultValue={profile.email}
+            placeholder="ten@example.com"
+            hint="Chỉ hiện (dạng che) khi form liên hệ gặp lỗi. Để trống nếu chưa muốn công khai."
+          />
+          <TextField
+            label="Link CV"
+            name="cvUrl"
+            defaultValue={profile.cvUrl}
+            placeholder="/cv.pdf"
+            hint="Đặt file vào thư mục public/ rồi điền /ten-file.pdf. Để trống thì ẩn nút tải CV."
+          />
+          <TextField
+            label="GitHub"
+            name="github"
+            type="url"
+            defaultValue={profile.socials.github}
+            placeholder="https://github.com/ten-cua-ban"
+          />
+          <TextField
+            label="LinkedIn"
+            name="linkedin"
+            type="url"
+            defaultValue={profile.socials.linkedin}
+            placeholder="https://www.linkedin.com/in/ten-cua-ban"
+          />
+        </FormSection>
+
+        <FormSection title="SEO" hint="Dùng cho thẻ <title>, mô tả trên Google, RSS và llms.txt.">
+          <TextField
+            label="Tiêu đề site"
+            name="title"
+            required
+            defaultValue={profile.title}
+            placeholder="Minh Quân — Hành trình AI Engineer"
+            wrapperClassName="sm:col-span-2"
+          />
+          <TextAreaField
+            label="Mô tả site"
+            name="description"
+            required
+            rows={3}
+            defaultValue={profile.description}
+            placeholder="Portfolio và blog ghi lại những gì mình học được…"
+            hint="Khoảng 150–160 ký tự là vừa đẹp trên kết quả tìm kiếm."
+            wrapperClassName="sm:col-span-2"
+          />
+        </FormSection>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-5">
+          <Button type="submit" disabled={pending}>
+            {pending ? (
+              <>
+                <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> Đang lưu…
+              </>
+            ) : (
+              <>
+                <Save className="size-4" aria-hidden /> Lưu hồ sơ
+              </>
+            )}
+          </Button>
+          {dirty && !pending && (
+            <p className="font-mono text-xs text-muted">
+              <span className="text-accent" aria-hidden>
+                ●
+              </span>{" "}
+              Có thay đổi chưa lưu
+            </p>
+          )}
+        </div>
+      </div>
+    </form>
   );
 }
 

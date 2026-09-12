@@ -1,0 +1,31 @@
+{
+  "name": "Minh Quân",
+  "handle": "minhquan",
+  "role": "AI Engineer (đang trên hành trình) 2",
+  "headline": "Học và xây hệ thống LLM: RAG, Agents, Evals.",
+  "title": "Minh Quân — Hành trình AI Engineer",
+  "description": "Portfolio và blog ghi lại những gì mình học được trên con đường trở thành AI Engineer: LLM, RAG, Agents, Evals và LLMOps.",
+  "email": "",
+  "cvUrl": "",
+  "availability": {
+    "open": true,
+    "label": "Sẵn sàng trao đổi về dự án và cơ hội làm việc"
+  },
+  "socials": {
+    "github": "https://github.com/Zeno2k3",
+    "linkedin": ""
+  },
+  "about": {
+    "bio": [
+      "Mình đang tự học để trở thành AI Engineer — tập trung vào việc đưa LLM vào sản phẩm thật: RAG, agents, và cách đo xem hệ thống có chạy tốt không.",
+      "Site này là sổ tay thí nghiệm của mình: mỗi dự án đi kèm cách làm và kết quả đo được, mỗi bài viết là thứ mình vừa học và tự kiểm chứng."
+    ],
+    "timeline": [
+      {
+        "period": "2026 — nay",
+        "title": "Tự học AI Engineering",
+        "impact": "Đi hết nền tảng ML và LLM, đang xây DocChat (RAG) để áp dụng vào tài liệu thật."
+      }
+    ]
+  }
+}

@@ -1,9 +1,15 @@
 // Thông tin cá nhân + hằng số + hàm tiện ích dùng chung (chạy được cả server lẫn client).
 // Nội dung (lộ trình, chứng chỉ, dự án, bài viết) nằm trong thư mục content/ — xem src/lib/content.ts.
 
-import type { ProjectFrontmatter, RoadmapStage } from "@/lib/schema";
+// Hồ sơ cá nhân sửa được ở trang /admin → tab "Giới thiệu" (ghi vào content/profile.json).
+// Ở đây import thẳng file JSON (không qua fs) để dùng được cả trong client component
+// như header/footer; bản có kiểm tra schema là getProfile() trong src/lib/content.ts.
+import profileJson from "../../content/profile.json";
+import type { Profile, ProjectFrontmatter, RoadmapStage } from "@/lib/schema";
 
 export type {
+  Profile,
+  TimelineItem,
   Credential,
   Project,
   ProjectMeta,
@@ -14,48 +20,21 @@ export type {
 
 const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
 
+const profile: Profile = profileJson;
+
 export const site = {
-  name: "Minh Quân",
-  handle: "minhquan",
-  role: "AI Engineer (đang trên hành trình)",
-  headline: "Học và xây hệ thống LLM: RAG, Agents, Evals.",
-  title: "Minh Quân — Hành trình AI Engineer",
-  description:
-    "Portfolio và blog ghi lại những gì mình học được trên con đường trở thành AI Engineer: LLM, RAG, Agents, Evals và LLMOps.",
+  ...profile,
   // Domain chính thức. Chỉ dùng phía server (canonical, sitemap, RSS, JSON-LD).
   // Đặt NEXT_PUBLIC_SITE_URL khi có domain riêng; trên Vercel tự lấy domain production.
   url:
     process.env.NEXT_PUBLIC_SITE_URL ?? (productionHost ? `https://${productionHost}` : "http://localhost:3000"),
-  // Email hiện (dạng che) khi form liên hệ lỗi. Để trống nếu chưa muốn công khai.
-  email: "",
-  // Trạng thái hiện ở trang Liên hệ / Giới thiệu.
-  availability: { open: true, label: "Sẵn sàng trao đổi về dự án và cơ hội làm việc" },
-  // Link CV, ví dụ "/cv.pdf" (đặt file vào thư mục public/). Để trống thì ẩn nút tải CV.
-  cvUrl: "",
-  socials: {
-    github: "https://github.com/Zeno2k3",
-    linkedin: "", // ví dụ "https://www.linkedin.com/in/ten-cua-ban"
-  },
-  about: {
-    bio: [
-      "Mình đang tự học để trở thành AI Engineer — tập trung vào việc đưa LLM vào sản phẩm thật: RAG, agents, và cách đo xem hệ thống có chạy tốt không.",
-      "Site này là sổ tay thí nghiệm của mình: mỗi dự án đi kèm cách làm và kết quả đo được, mỗi bài viết là thứ mình vừa học và tự kiểm chứng.",
-    ],
-    timeline: [
-      {
-        period: "2026 — nay",
-        title: "Tự học AI Engineering",
-        impact: "Đi hết nền tảng ML và LLM, đang xây DocChat (RAG) để áp dụng vào tài liệu thật.",
-      },
-    ],
-  },
 };
 
 /** Các mạng xã hội đã điền (bỏ qua mục để trống). */
-export function socialLinks(): { label: string; href: string }[] {
+export function socialLinks(socials: Profile["socials"] = site.socials): { label: string; href: string }[] {
   return [
-    { label: "GitHub", href: site.socials.github },
-    { label: "LinkedIn", href: site.socials.linkedin },
+    { label: "GitHub", href: socials.github },
+    { label: "LinkedIn", href: socials.linkedin },
   ].filter((link) => link.href);
 }
 

@@ -1,15 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { FolderGit2 } from "lucide-react";
-import { saveCredentials, savePosts, saveProjects, saveRoadmap, type SaveResult } from "@/app/admin/actions";
-import { CredentialsEditor, PostsEditor, ProjectsEditor, RoadmapEditor } from "@/components/admin/editors";
-import { buttonClass } from "@/components/admin/ui";
+import { saveCredentials, savePosts, saveProfile, saveProjects, saveRoadmap, type SaveResult } from "@/app/admin/actions";
+import {
+  CredentialsEditor,
+  PostsEditor,
+  ProfileEditor,
+  ProjectsEditor,
+  RoadmapEditor,
+} from "@/components/admin/editors";
+import { Toast, buttonClass, type ToastState } from "@/components/admin/ui";
 import type { EditablePost } from "@/lib/posts";
-import type { Credential, Project, RoadmapStage } from "@/lib/site";
+import type { Credential, Profile, Project, RoadmapStage } from "@/lib/site";
 
 export type AdminData = {
+  profile: Profile;
   roadmap: RoadmapStage[];
   credentials: Credential[];
   projects: Project[];
@@ -19,6 +26,7 @@ export type AdminData = {
 type TabId = keyof AdminData;
 
 const TABS: { id: TabId; label: string; file: string }[] = [
+  { id: "profile", label: "Giới thiệu", file: "content/profile.json" },
   { id: "roadmap", label: "Lộ trình học", file: "content/roadmap.json" },
   { id: "credentials", label: "Chứng chỉ & Khoá học", file: "content/credentials.json" },
   { id: "projects", label: "Dự án", file: "content/work/*.mdx" },
@@ -26,19 +34,22 @@ const TABS: { id: TabId; label: string; file: string }[] = [
 ];
 
 const SAVE: { [K in TabId]: (items: AdminData[K]) => Promise<SaveResult> } = {
+  profile: saveProfile,
   roadmap: saveRoadmap,
   credentials: saveCredentials,
   projects: saveProjects,
   posts: savePosts,
 };
 
-type Message = { type: "ok" | "error"; text: string } | null;
-
 export function AdminApp({ initialData }: { initialData: AdminData }) {
   const [data, setData] = useState(initialData);
-  const [tab, setTab] = useState<TabId>("roadmap");
-  const [message, setMessage] = useState<Message>(null);
+  const [tab, setTab] = useState<TabId>("profile");
+  const [message, setMessage] = useState<ToastState>(null);
+  // Tăng sau mỗi lần lưu xong; dùng làm `key` để form hồ sơ mount lại và bỏ cờ "chưa lưu".
+  const [savedCount, setSavedCount] = useState(0);
   const [pending, startTransition] = useTransition();
+
+  const dismiss = useCallback(() => setMessage(null), []);
 
   function flash(text: string, type: "ok" | "error" = "ok") {
     setMessage({ type, text });
@@ -47,11 +58,12 @@ export function AdminApp({ initialData }: { initialData: AdminData }) {
   function save<K extends TabId>(key: K, items: AdminData[K]) {
     const previous = data;
     setData({ ...data, [key]: items }); // hiện ngay, hoàn tác nếu server báo lỗi
-    setMessage(null);
+    setMessage({ type: "pending", text: "Đang lưu…" });
     startTransition(async () => {
       const result = await (SAVE[key] as (items: AdminData[K]) => Promise<SaveResult>)(items);
       flash(result.message, result.ok ? "ok" : "error");
-      if (!result.ok) setData(previous);
+      if (result.ok) setSavedCount((count) => count + 1);
+      else setData(previous);
     });
   }
 
@@ -101,23 +113,28 @@ export function AdminApp({ initialData }: { initialData: AdminData }) {
             }`}
           >
             {t.label}
-            <span className="ml-2 bg-surface-2 px-2 py-0.5 text-xs text-muted">{data[t.id].length}</span>
+            {Array.isArray(data[t.id]) && (
+              <span className="ml-2 bg-surface-2 px-2 py-0.5 text-xs text-muted">
+                {(data[t.id] as unknown[]).length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      <p className="pt-3 font-mono text-xs text-subtle">File: {current.file}</p>
-      <p
-        role="status"
-        aria-live="polite"
-        className={`min-h-6 py-3 text-sm font-medium whitespace-pre-line ${
-          message?.type === "error" ? "text-red-600 dark:text-red-400" : "text-accent"
-        }`}
-      >
-        {pending ? "Đang lưu…" : message?.text}
-      </p>
+      <p className="py-3 font-mono text-xs text-subtle">File: {current.file}</p>
+
+      <Toast state={message} onDismiss={dismiss} />
 
       <div role="tabpanel" id="admin-panel" aria-labelledby={`tab-${tab}`}>
+        {tab === "profile" && (
+          <ProfileEditor
+            key={savedCount}
+            profile={data.profile}
+            pending={pending}
+            onChange={(item) => save("profile", item)}
+          />
+        )}
         {tab === "roadmap" && <RoadmapEditor items={data.roadmap} onChange={(items) => save("roadmap", items)} />}
         {tab === "credentials" && (
           <CredentialsEditor

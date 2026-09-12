@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AdminApp } from "@/components/admin/admin-app";
-import { getAllProjects, getCredentials, getRoadmap } from "@/lib/content";
+import { getAllProjects, getCredentials, getProfile, getRoadmap } from "@/lib/content";
 import { getEditablePosts } from "@/lib/posts";
 import { containerClass } from "@/lib/ui";
 
@@ -27,6 +27,7 @@ export default function AdminPage() {
   return (
     <AdminApp
       initialData={{
+        profile: getProfile(),
         roadmap: getRoadmap(),
         credentials: getCredentials(),
         projects: getAllProjects(),

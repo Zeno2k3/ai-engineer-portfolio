@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useId, type ComponentProps, type ReactNode } from "react";
+import { CircleAlert, CircleCheck, LoaderCircle, X } from "lucide-react";
 
 const buttonBase =
   "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent-strong";
@@ -25,6 +26,62 @@ export function Button({
   ...props
 }: ComponentProps<"button"> & { variant?: ButtonVariant }) {
   return <button type={type} className={buttonClass(variant, className)} {...props} />;
+}
+
+// ---------- Thông báo nổi (toast) ----------
+
+export type ToastState = { type: "ok" | "error" | "pending"; text: string } | null;
+
+/** Thông báo thành công tự ẩn sau 6s; lỗi ở lại cho tới khi đóng hoặc có thao tác mới. */
+const TOAST_TIMEOUT_MS = 6000;
+
+const toastStyles = {
+  ok: { Icon: CircleCheck, border: "border-accent-strong", icon: "text-accent-strong" },
+  error: { Icon: CircleAlert, border: "border-red-600 dark:border-red-400", icon: "text-red-600 dark:text-red-400" },
+  pending: { Icon: LoaderCircle, border: "border-fg", icon: "text-muted motion-safe:animate-spin" },
+};
+
+/**
+ * Báo kết quả của mọi thao tác lưu / cập nhật, hiện cố định ở góc màn hình nên
+ * thấy được kể cả khi đang cuộn ở cuối form dài.
+ */
+export function Toast({ state, onDismiss }: { state: ToastState; onDismiss: () => void }) {
+  useEffect(() => {
+    if (state?.type !== "ok") return;
+    const timer = setTimeout(onDismiss, TOAST_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [state, onDismiss]);
+
+  const style = state ? toastStyles[state.type] : null;
+
+  return (
+    // Vùng live luôn có trong DOM để trình đọc màn hình đọc được nội dung mới.
+    <div
+      aria-live="polite"
+      aria-atomic="true"
+      className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-6 sm:justify-end"
+    >
+      {state && style && (
+        <div
+          key={`${state.type}-${state.text}`}
+          className={`toast-in pointer-events-auto flex max-w-md min-w-0 items-start gap-3 border-2 ${style.border} bg-surface p-4 hard-shadow-static`}
+        >
+          <style.Icon className={`mt-0.5 size-5 shrink-0 ${style.icon}`} aria-hidden />
+          <p className="min-w-0 flex-1 text-sm leading-relaxed font-medium whitespace-pre-line text-fg">{state.text}</p>
+          {state.type !== "pending" && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Đóng thông báo"
+              className="-m-1 shrink-0 cursor-pointer p-1 text-subtle transition-colors hover:text-fg"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const inputClass =

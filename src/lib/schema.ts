@@ -41,6 +41,28 @@ export const slugSchema = z
   .string()
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "chỉ gồm chữ thường không dấu, số và dấu gạch ngang");
 
+// ---------- Hồ sơ cá nhân (content/profile.json) ----------
+
+// Ô để trống vẫn giữ chuỗi rỗng (khác optText) để hình dạng file JSON luôn ổn định.
+const blankOrUrl = z.union([z.literal(""), z.url("cần là URL đầy đủ, ví dụ https://…")]).default("");
+
+export const profileSchema = z.object({
+  name: text, // tên hiện ở header, footer, trang Giới thiệu
+  handle: text, // định danh ngắn, ví dụ "minhquan" → hiện dạng @minhquan
+  role: text, // chức danh 1 dòng
+  headline: text, // câu mở đầu ở trang chủ và ảnh OG
+  title: text, // tiêu đề trang mặc định (<title>, RSS)
+  description: text, // mô tả site cho SEO / RSS / llms.txt
+  email: z.string().trim().default(""), // hiện khi form liên hệ lỗi; để trống là ẩn
+  cvUrl: z.string().trim().default(""), // ví dụ "/cv.pdf" (file trong public/); để trống là ẩn nút tải CV
+  availability: z.object({ open: flag, label: text }),
+  socials: z.object({ github: blankOrUrl, linkedin: blankOrUrl }),
+  about: z.object({
+    bio: z.array(text).default([]), // mỗi phần tử là một đoạn văn
+    timeline: z.array(z.object({ period: text, title: text, impact: text })).default([]),
+  }),
+});
+
 // ---------- Lộ trình (content/roadmap.json) ----------
 
 export const stageSchema = z.object({
@@ -126,6 +148,8 @@ export const nowSchema = z.object({ updated: isoDate });
 
 // ---------- Kiểu dữ liệu ----------
 
+export type Profile = z.output<typeof profileSchema>;
+export type TimelineItem = Profile["about"]["timeline"][number];
 export type RoadmapStage = z.output<typeof stageSchema>;
 export type RoadmapTopic = RoadmapStage["topics"][number];
 export type Credential = z.output<typeof credentialSchema>;

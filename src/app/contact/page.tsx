@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
 import { ContactForm } from "@/components/contact-form";
 import { PageHeader } from "@/components/section-heading";
-import { site, socialLinks } from "@/lib/site";
+import { getProfile } from "@/lib/content";
+import { socialLinks } from "@/lib/site";
 import { containerClass } from "@/lib/ui";
 
-export const metadata: Metadata = {
-  title: "Liên hệ",
-  description: `Liên hệ với ${site.name} để trao đổi về AI Engineering, dự án hoặc cơ hội làm việc.`,
-  alternates: { canonical: "/contact" },
-};
+export function generateMetadata(): Metadata {
+  const profile = getProfile();
+  return {
+    title: "Liên hệ",
+    description: `Liên hệ với ${profile.name} để trao đổi về AI Engineering, dự án hoặc cơ hội làm việc.`,
+    alternates: { canonical: "/contact" },
+  };
+}
 
 export default function ContactPage() {
-  const [user, domain] = site.email.split("@");
+  const profile = getProfile();
+  const socials = socialLinks(profile.socials);
+  const [user, domain] = profile.email.split("@");
   const emailParts: [string, string] | null = user && domain ? [user, domain] : null;
 
   return (
@@ -27,15 +33,15 @@ export default function ContactPage() {
         </div>
         <aside className="self-start border-2 border-fg bg-surface p-6">
           <p className="flex items-center gap-2 font-mono text-sm text-fg">
-            <span className={`size-2.5 ${site.availability.open ? "bg-accent-strong" : "bg-subtle"}`} aria-hidden />
-            {site.availability.open ? "Open to work" : "Not taking new work"}
+            <span className={`size-2.5 ${profile.availability.open ? "bg-accent-strong" : "bg-subtle"}`} aria-hidden />
+            {profile.availability.open ? "Open to work" : "Not taking new work"}
           </p>
-          <p className="mt-2 text-muted">{site.availability.label}</p>
-          {socialLinks().length > 0 && (
+          <p className="mt-2 text-muted">{profile.availability.label}</p>
+          {socials.length > 0 && (
             <>
               <p className="mt-6 font-mono text-xs uppercase tracking-widest text-subtle">Hoặc tìm mình ở</p>
               <ul className="mt-2 space-y-1 font-mono text-sm">
-                {socialLinks().map((link) => (
+                {socials.map((link) => (
                   <li key={link.href}>
                     <a href={link.href} target="_blank" rel="noreferrer me" className="text-accent underline-offset-4 hover:underline">
                       {link.label}
