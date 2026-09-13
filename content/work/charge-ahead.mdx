@@ -1,0 +1,46 @@
+---
+title: Charge Ahead — lập lộ trình sạc xe điện liên tỉnh
+tagline: Agent hội thoại nhiều lượt hỏi đủ tham số chuyến đi, xác nhận với người dùng rồi mới gọi solver chọn trạm sạc.
+domain: Agents
+status: Hoàn thành
+stack:
+  - Python
+  - LangGraph
+  - OpenAI SDK
+  - FastAPI
+  - Pydantic
+  - Arize
+  - pytest
+startDate: 07/2026
+endDate: 08/2026
+featured: true
+stage: agents
+metrics:
+  - label: Trích xuất tham số đúng
+    value: 94%
+    delta: từ 65% (16/17 ca, trước là 11/17)
+  - label: Test tự động
+    value: "705"
+  - label: Kịch bản golden
+    value: 21 × 3 lượt chạy
+---
+
+## Vấn đề
+
+Chuyến đi liên tỉnh bằng xe điện cần rất nhiều tham số mới tối ưu được: giờ khởi hành, hạn giờ đến, số lần dừng chấp nhận được, việc cần ghé dọc đường. Một form dài thì người dùng bỏ ngang; còn để LLM tự suy đoán thiếu thì solver trả về lộ trình sai mà người dùng không biết sai ở đâu.
+
+## Cách tiếp cận
+
+Một agent hội thoại nhiều lượt dựng bằng **LangGraph**: đồ thị 15 node xen kẽ node tất định và node gọi LLM, có checkpointer giữ ngữ cảnh phiên và cơ chế nén lịch sử cho hội thoại dài. Agent hỏi cho đến khi đủ tham số, hiện **thẻ xác nhận** để người dùng duyệt, rồi mới gọi solver tối ưu chọn trạm sạc và lượng sạc tại mỗi trạm.
+
+Điểm cải thiện lớn nhất đến từ việc chia lại việc giữa LLM và code: **model lo diễn giải ngữ nghĩa, code tất định lo quy đổi ngày giờ**. Sau khi thiết kế lại prompt theo hướng đó, độ chính xác trích xuất tham số trên golden dataset tăng từ **11/17 lên 16/17 ca (65% → 94%)**.
+
+## Đo và giữ cho không vỡ
+
+- **Eval harness tự động**: golden dataset nhiều lượt (21 kịch bản × 3 lần chạy qua đồ thị thật) cộng một evaluator riêng cho tầng trích xuất, xuất báo cáo CSV/Markdown để so sánh định lượng giữa các phiên bản prompt.
+- **Observability**: trace OpenTelemetry/OpenInference đẩy sang **Arize** để xem lại từng lượt — prompt, token, đường đi qua đồ thị.
+- **705 test** cùng cơ chế replay trên phản hồi model đã ghi lại, để refactor không âm thầm đổi hành vi.
+
+<Callout type="note">
+Dự án làm nhóm 4 người; phần mình phụ trách là tầng agent hội thoại, prompt, eval harness và observability.
+</Callout>

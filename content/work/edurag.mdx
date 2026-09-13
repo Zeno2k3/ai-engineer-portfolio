@@ -1,0 +1,64 @@
+---
+title: EduRag — trợ lý tư vấn tuyển sinh tiểu học
+tagline: RAG agent trả lời phụ huynh về kế hoạch tuyển sinh đầu cấp, có trích dẫn nguồn và biết từ chối câu hỏi ngoài phạm vi.
+domain: RAG
+status: Hoàn thành
+stack:
+  - Python
+  - FastAPI
+  - LlamaIndex
+  - Weaviate
+  - LlamaParse
+  - Cohere Rerank
+  - RAGAS
+  - Arize Phoenix
+  - PostgreSQL
+  - Redis
+startDate: 10/2025
+endDate: 05/2026
+featured: true
+stage: rag
+metrics:
+  - label: Recall (agentic)
+    value: "0.736"
+    delta: +65% so với naive RAG (0.447)
+  - label: Recall (advanced)
+    value: "0.646"
+    delta: +45% so với naive RAG
+  - label: Từ chối đúng câu ngoài phạm vi
+    value: 97%
+    delta: từ 0%
+  - label: Câu hỏi kiểm thử
+    value: "300+"
+---
+
+## Vấn đề
+
+Kế hoạch tuyển sinh đầu cấp nằm rải rác trong hàng loạt file PDF/DOCX của từng phường, nhiều trang là bản scan và phần quan trọng nhất — chỉ tiêu, tuyến tuyển sinh — lại nằm trong bảng. Phụ huynh rất khó tra, còn hỏi thẳng LLM thì model bịa ra trường và chỉ tiêu không có thật.
+
+## Cách tiếp cận
+
+Pipeline ingest cho dữ liệu không đồng nhất: LlamaParse (OCR trang scan, bảng, dấu tiếng Việt) → **chunking bằng LLM** trên markdown, tách mỗi bảng thành chunk riêng → **Contextual Retrieval** kèm metadata (năm học, phường/xã) → index vào Weaviate.
+
+Khi truy vấn: **hybrid search** (BM25 + vector) rồi **rerank hai tầng** bằng `rerank-multilingual-v3.0`. Tham số `α=0.4`, `top_k=36`, `top_n=4` không chọn theo cảm tính mà quét thực nghiệm trên 200 câu hỏi có nhãn liên quan phân mức, kèm khoảng tin cậy bootstrap 95%.
+
+Mình dựng và so sánh định lượng **3 kiến trúc RAG** — Naive / Advanced / Agentic (LlamaIndex Workflows: Planner → fan-out retrieval song song → Critic):
+
+| Kiến trúc | Recall | Độ trễ p50 |
+| --- | --- | --- |
+| Naive | 0.447 | 8s |
+| Advanced | 0.646 | 18s |
+| Agentic | 0.736 | 49s |
+
+Recall cao nhất không miễn phí: nhánh agentic đắt hơn 6 lần về độ trễ, nên đây là đánh đổi cần cân theo từng loại câu hỏi chứ không phải một lựa chọn mặc định.
+
+## Chống bịa
+
+Vấn đề lớn nhất không phải retrieval mà là câu hỏi ngoài phạm vi — model vẫn trả lời trơn tru bằng kiến thức chung. Mình thêm **LLM router** ở đầu và **hậu kiểm trích dẫn** ở cuối: soi từng câu trả lời với nguồn của nó rồi quyết định giữ / trích lại / bỏ.
+
+- Tỉ lệ từ chối đúng câu ngoài phạm vi: **0% → 97%**
+- Chặn nhầm câu hợp lệ: **49 → 7 câu** sau khi tinh chỉnh prompt router (chính xác 92%)
+
+## Đánh giá & quan sát
+
+Pipeline đánh giá tự động dùng **RAGAS** cùng các chỉ số retrieval đối chiếu nhãn vàng, chạy trên **hơn 300 câu hỏi** tự xây. **Arize Phoenix** (OpenTelemetry) trace mọi lệnh gọi LLM, embedding và rerank — nhờ đó tìm được điểm nghẽn độ trễ thay vì đoán.

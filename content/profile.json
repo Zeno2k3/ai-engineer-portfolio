@@ -1,30 +1,46 @@
 {
-  "name": "Minh Quân",
+  "name": "Trần Minh Quân",
   "handle": "minhquan",
-  "role": "AI Engineer (đang trên hành trình) 2",
-  "headline": "Học và xây hệ thống LLM: RAG, Agents, Evals.",
-  "title": "Minh Quân — Hành trình AI Engineer",
-  "description": "Portfolio và blog ghi lại những gì mình học được trên con đường trở thành AI Engineer: LLM, RAG, Agents, Evals và LLMOps.",
-  "email": "",
+  "role": "AI Engineer",
+  "headline": "Xây hệ thống LLM chạy được và đo được: RAG, multi-agent, evals.",
+  "title": "Trần Minh Quân — AI Engineer",
+  "description": "Portfolio của Trần Minh Quân: các hệ thống LLM đã xây (RAG, agent nhiều bước, eval harness) kèm cách làm và số liệu đo được, cùng ghi chú trên đường học AI Engineering.",
+  "email": "quantmforwork@gmail.com",
   "cvUrl": "",
   "availability": {
     "open": true,
-    "label": "Sẵn sàng trao đổi về dự án và cơ hội làm việc"
+    "label": "Sẵn sàng trao đổi về cơ hội AI Engineer tại TP.HCM"
   },
   "socials": {
     "github": "https://github.com/Zeno2k3",
-    "linkedin": ""
+    "linkedin": "https://linkedin.com/in/devminhquan2003"
   },
   "about": {
     "bio": [
-      "Mình đang tự học để trở thành AI Engineer — tập trung vào việc đưa LLM vào sản phẩm thật: RAG, agents, và cách đo xem hệ thống có chạy tốt không.",
-      "Site này là sổ tay thí nghiệm của mình: mỗi dự án đi kèm cách làm và kết quả đo được, mỗi bài viết là thứ mình vừa học và tự kiểm chứng."
+      "Mình là sinh viên năm cuối ngành Công nghệ thông tin, tập trung vào Machine Learning và AI. Mình thích đưa LLM vào sản phẩm thật: hệ thống RAG đọc tài liệu, agent hội thoại nhiều lượt, và quan trọng nhất là cách đo xem chúng có thực sự chạy tốt không.",
+      "Với mình một thay đổi chỉ tính là cải thiện khi có số liệu chứng minh. Nên mỗi dự án ở đây đều đi kèm golden dataset, bộ chỉ số và tracing — từ recall của bước retrieval đến tỉ lệ từ chối đúng câu hỏi ngoài phạm vi.",
+      "Site này là sổ tay thí nghiệm: mỗi dự án ghi lại cách làm và kết quả đo được, mỗi bài viết là thứ mình vừa học và tự kiểm chứng."
     ],
     "timeline": [
       {
-        "period": "2026 — nay",
-        "title": "Tự học AI Engineering",
-        "impact": "Đi hết nền tảng ML và LLM, đang xây DocChat (RAG) để áp dụng vào tài liệu thật."
+        "period": "07/2026 — 08/2026",
+        "title": "Charge Ahead — trợ lý lập lộ trình sạc xe điện",
+        "impact": "Agent hội thoại nhiều lượt trên LangGraph; độ chính xác trích xuất tham số tăng từ 65% lên 94%."
+      },
+      {
+        "period": "10/2025 — 05/2026",
+        "title": "EduRag — trợ lý tư vấn tuyển sinh tiểu học",
+        "impact": "Hybrid search + rerank + kiến trúc agentic đưa recall từ 0.447 lên 0.736; tỉ lệ từ chối đúng câu ngoài phạm vi từ 0% lên 97%."
+      },
+      {
+        "period": "07/2025 — nay",
+        "title": "Gia sư Tin học",
+        "impact": "Học trò đạt 2 giải Khuyến khích quốc gia và 2 giải Nhất khu vực phía Nam Tin học trẻ (bảng D1)."
+      },
+      {
+        "period": "07/2022 — nay",
+        "title": "Cử nhân CNTT — ĐH Sư phạm TP.HCM",
+        "impact": "GPA 8.0/10 (3.34/4.0), học bổng khuyến khích học tập 2025 – 2026."
       }
     ]
   }

@@ -10,6 +10,14 @@
         "done": true
       },
       {
+        "name": "C/C++",
+        "done": true
+      },
+      {
+        "name": "SQL",
+        "done": true
+      },
+      {
         "name": "NumPy / Pandas",
         "done": true
       },
@@ -44,13 +52,17 @@
       {
         "name": "Structured output",
         "done": true
+      },
+      {
+        "name": "Nén lịch sử hội thoại",
+        "done": true
       }
     ]
   },
   {
     "id": "rag",
     "title": "RAG & Vector Database",
-    "status": "doing",
+    "status": "done",
     "description": "Cho LLM đọc tài liệu riêng: chia nhỏ, nhúng vector, tìm kiếm và trả lời kèm nguồn.",
     "topics": [
       {
@@ -63,15 +75,23 @@
       },
       {
         "name": "Vector search",
-        "done": false
+        "done": true
       },
       {
-        "name": "Reranking",
-        "done": false
+        "name": "Hybrid search (BM25 + vector)",
+        "done": true
       },
       {
-        "name": "Hybrid search",
-        "done": false
+        "name": "Reranking hai tầng",
+        "done": true
+      },
+      {
+        "name": "Contextual Retrieval",
+        "done": true
+      },
+      {
+        "name": "Trích dẫn nguồn & từ chối câu ngoài phạm vi",
+        "done": true
       }
     ]
   },
@@ -86,15 +106,23 @@
         "done": true
       },
       {
-        "name": "MCP",
-        "done": false
-      },
-      {
         "name": "Agent loop",
+        "done": true
+      },
+      {
+        "name": "Multi-agent (Planner → Critic)",
+        "done": true
+      },
+      {
+        "name": "Hội thoại nhiều lượt & checkpointer",
+        "done": true
+      },
+      {
+        "name": "Memory dài hạn",
         "done": false
       },
       {
-        "name": "Memory",
+        "name": "MCP",
         "done": false
       }
     ]
@@ -102,19 +130,27 @@
   {
     "id": "evals-llmops",
     "title": "Evals & LLMOps",
-    "status": "next",
+    "status": "doing",
     "description": "Đo chất lượng, theo dõi và vận hành ứng dụng LLM trên production.",
     "topics": [
       {
-        "name": "Đánh giá chất lượng",
-        "done": false
+        "name": "Golden dataset",
+        "done": true
       },
       {
-        "name": "Observability",
-        "done": false
+        "name": "Đánh giá chất lượng (RAGAS, recall)",
+        "done": true
+      },
+      {
+        "name": "Observability (OpenTelemetry, Arize Phoenix)",
+        "done": true
       },
       {
         "name": "Chi phí & độ trễ",
+        "done": true
+      },
+      {
+        "name": "CI cho eval",
         "done": false
       },
       {
