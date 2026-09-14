@@ -23,24 +23,9 @@
     ],
     "timeline": [
       {
-        "period": "07/2026 — 08/2026",
-        "title": "Charge Ahead — trợ lý lập lộ trình sạc xe điện",
-        "impact": "Agent hội thoại nhiều lượt trên LangGraph; độ chính xác trích xuất tham số tăng từ 65% lên 94%."
-      },
-      {
-        "period": "10/2025 — 05/2026",
-        "title": "EduRag — trợ lý tư vấn tuyển sinh tiểu học",
-        "impact": "Hybrid search + rerank + kiến trúc agentic đưa recall từ 0.447 lên 0.736; tỉ lệ từ chối đúng câu ngoài phạm vi từ 0% lên 97%."
-      },
-      {
         "period": "07/2025 — nay",
-        "title": "Gia sư Tin học",
-        "impact": "Học trò đạt 2 giải Khuyến khích quốc gia và 2 giải Nhất khu vực phía Nam Tin học trẻ (bảng D1)."
-      },
-      {
-        "period": "07/2022 — nay",
-        "title": "Cử nhân CNTT — ĐH Sư phạm TP.HCM",
-        "impact": "GPA 8.0/10 (3.34/4.0), học bổng khuyến khích học tập 2025 – 2026."
+        "title": "Gia sư Tin học — TP.HCM",
+        "impact": "Dạy Python, C/C++, Scratch, OOP và cấu trúc dữ liệu – giải thuật. Học trò đạt 2 giải Khuyến khích quốc gia và 2 giải Nhất khu vực phía Nam Tin học trẻ (bảng D1)."
       }
     ]
   }
